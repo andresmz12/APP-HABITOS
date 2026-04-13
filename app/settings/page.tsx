@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/stores/appStore';
 import { updatePartner } from '@/lib/firebase/appConfig';
 import { Partner } from '@/lib/types/models';
-import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS, HABIT_EMOJIS } from '@/lib/utils/constants';
-import { Bell, BellOff, ChevronRight, Info } from 'lucide-react';
+import { Bell, BellOff, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const STEP_EMOJIS = ['🧑', '👩', '🧑‍🤝‍🧑', '🐱', '🐶', '🦊', '🐼', '🦁', '🐙', '🌟'];
@@ -41,11 +39,7 @@ export default function SettingsPage() {
         notificationTime: partner.notificationTime,
         notificationsEnabled: partner.notificationsEnabled,
       });
-      // Update local config optimistically
-      setAppConfig({
-        ...appConfig,
-        [partner.id]: partner,
-      });
+      setAppConfig({ ...appConfig, [partner.id]: partner });
       setEditPartner(null);
     } finally {
       setSaving(false);
@@ -67,73 +61,87 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
-      <div className="px-4 pt-12 pb-4 space-y-4">
-        <h1 className="text-white text-xl font-bold">Ajustes</h1>
+      <div className="px-4 pt-12 pb-4 space-y-5">
+        <h1 className="text-white text-2xl font-black">Ajustes</h1>
 
-        {/* Partners */}
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
+        {/* Partner profile cards */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
             Perfiles
           </p>
           {([appConfig.partner1, appConfig.partner2] as Partner[]).map((partner) => (
-            <Card
+            <button
               key={partner.id}
               onClick={() => setEditPartner({ ...partner })}
-              className="flex items-center gap-3"
+              className="w-full rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+              style={{ border: `1px solid ${partner.avatarColor}30` }}
             >
-              <Avatar
-                emoji={partner.avatarEmoji}
-                color={partner.avatarColor}
-                name={partner.name}
-                size="md"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm">{partner.name}</p>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  {partner.notificationsEnabled
-                    ? `Recordatorio a las ${partner.notificationTime}`
-                    : 'Sin notificaciones'}
-                </p>
+              {/* Gradient header band */}
+              <div
+                className="px-5 py-4 flex items-center gap-4"
+                style={{
+                  background: `linear-gradient(135deg, ${partner.avatarColor}30 0%, ${partner.avatarColor}10 100%)`,
+                }}
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-3xl flex-shrink-0"
+                  style={{
+                    backgroundColor: partner.avatarColor + '22',
+                    border: `2px solid ${partner.avatarColor}`,
+                    boxShadow: `0 0 16px ${partner.avatarColor}44`,
+                  }}
+                >
+                  {partner.avatarEmoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-black text-lg leading-tight truncate">
+                    {partner.name}
+                  </p>
+                  {/* Notification badge */}
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {partner.notificationsEnabled ? (
+                      <>
+                        <Bell size={11} style={{ color: partner.avatarColor }} />
+                        <span className="text-xs font-medium" style={{ color: partner.avatarColor }}>
+                          {partner.notificationTime}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <BellOff size={11} className="text-gray-600" />
+                        <span className="text-xs text-gray-600">Sin recordatorio</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                  style={{ backgroundColor: partner.avatarColor + '20', color: partner.avatarColor }}
+                >
+                  <Pencil size={11} />
+                  Editar
+                </div>
               </div>
-              <ChevronRight size={16} className="text-gray-600" />
-            </Card>
+            </button>
           ))}
         </div>
 
-        {/* About */}
+        {/* Reset onboarding */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
-            Acerca de
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
+            Datos
           </p>
-          <Card className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center">
-                <Info size={16} className="text-violet-400" />
-              </div>
-              <div>
-                <p className="text-white text-sm font-medium">Hábitos en Pareja</p>
-                <p className="text-gray-500 text-xs">v1.0.0</p>
-              </div>
-            </div>
-            <p className="text-gray-500 text-xs leading-relaxed">
-              Para que las notificaciones push funcionen, necesitas configurar Firebase Cloud
-              Messaging en tu proyecto. Los recordatorios locales funcionan sin configuración
-              adicional en Chrome.
-            </p>
-          </Card>
+          <button
+            onClick={() => {
+              if (confirm('¿Ir al onboarding de nuevo? Los datos existentes se conservarán.'))
+                router.push('/onboarding');
+            }}
+            className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform"
+          >
+            <p className="text-gray-300 text-sm font-semibold">Cambiar nombres y avatares</p>
+            <p className="text-gray-600 text-xs mt-0.5">Vuelve a la pantalla inicial</p>
+          </button>
         </div>
-
-        {/* Onboarding reset (for dev) */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            if (confirm('¿Ir al onboarding de nuevo?')) router.push('/onboarding');
-          }}
-          className="w-full text-gray-600 text-xs"
-        >
-          Reiniciar onboarding
-        </Button>
       </div>
 
       {/* Edit partner modal */}
@@ -171,13 +179,17 @@ function PartnerEditModal({
   const EMOJIS = [...STEP_EMOJIS, ...HABIT_EMOJIS.slice(0, 10)];
 
   return (
-    <Modal open title={`Editar ${partner.name}`} onClose={onClose}>
+    <Modal open title={`Editar perfil`} onClose={onClose}>
       <div className="space-y-5">
-        {/* Preview */}
+        {/* Live preview */}
         <div className="flex justify-center">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl border-4"
-            style={{ backgroundColor: partner.avatarColor + '33', borderColor: partner.avatarColor }}
+            className="w-20 h-20 rounded-full flex items-center justify-center text-4xl border-4 transition-all duration-200"
+            style={{
+              backgroundColor: partner.avatarColor + '22',
+              borderColor: partner.avatarColor,
+              boxShadow: `0 0 24px ${partner.avatarColor}55`,
+            }}
           >
             {partner.avatarEmoji}
           </div>
@@ -185,7 +197,9 @@ function PartnerEditModal({
 
         {/* Name */}
         <div>
-          <label className="text-xs font-medium text-gray-400 mb-2 block">Nombre</label>
+          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+            Nombre
+          </label>
           <input
             type="text"
             value={partner.name}
@@ -197,8 +211,10 @@ function PartnerEditModal({
 
         {/* Emoji */}
         <div>
-          <label className="text-xs font-medium text-gray-400 mb-2 block">Emoji</label>
-          <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto">
+          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+            Avatar
+          </label>
+          <div className="grid grid-cols-5 gap-2 max-h-36 overflow-y-auto">
             {EMOJIS.map((e) => (
               <button
                 key={e}
@@ -207,9 +223,14 @@ function PartnerEditModal({
                 className={cn(
                   'h-11 rounded-xl text-xl flex items-center justify-center transition-all',
                   partner.avatarEmoji === e
-                    ? 'bg-violet-600/40 ring-2 ring-violet-500'
+                    ? 'scale-110 ring-2'
                     : 'bg-[#22223A] hover:bg-[#2a2a44]'
                 )}
+                style={
+                  partner.avatarEmoji === e
+                    ? { backgroundColor: partner.avatarColor + '30', ringColor: partner.avatarColor }
+                    : {}
+                }
               >
                 {e}
               </button>
@@ -219,7 +240,9 @@ function PartnerEditModal({
 
         {/* Color */}
         <div>
-          <label className="text-xs font-medium text-gray-400 mb-2 block">Color</label>
+          <label className="text-xs font-semibold text-gray-400 mb-3 block uppercase tracking-wider">
+            Color
+          </label>
           <div className="flex gap-3 flex-wrap">
             {AVATAR_COLORS.map((color) => (
               <button
@@ -239,7 +262,7 @@ function PartnerEditModal({
 
         {/* Notification time */}
         <div>
-          <label className="text-xs font-medium text-gray-400 mb-2 block">
+          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
             Hora de recordatorio
           </label>
           <input
@@ -251,9 +274,9 @@ function PartnerEditModal({
         </div>
 
         {/* Notifications toggle */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-[#22223A] rounded-xl px-4 py-3">
           <div>
-            <p className="text-white text-sm font-medium">Notificaciones</p>
+            <p className="text-white text-sm font-semibold">Notificaciones</p>
             <p className="text-gray-500 text-xs">Recordatorio diario</p>
           </div>
           <button
@@ -265,25 +288,26 @@ function PartnerEditModal({
               }
             }}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all',
+              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all',
               partner.notificationsEnabled
-                ? 'bg-violet-600/20 text-violet-400'
-                : 'bg-[#22223A] text-gray-400'
+                ? 'text-white'
+                : 'bg-[#2a2a44] text-gray-400'
             )}
+            style={
+              partner.notificationsEnabled
+                ? { backgroundColor: partner.avatarColor, color: 'white' }
+                : {}
+            }
           >
             {partner.notificationsEnabled ? (
-              <>
-                <Bell size={14} /> Activadas
-              </>
+              <><Bell size={14} /> On</>
             ) : (
-              <>
-                <BellOff size={14} /> Desactivadas
-              </>
+              <><BellOff size={14} /> Off</>
             )}
           </button>
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-1">
           <Button variant="secondary" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
@@ -292,6 +316,7 @@ function PartnerEditModal({
             loading={saving}
             disabled={!partner.name.trim()}
             className="flex-1"
+            style={{ backgroundColor: partner.avatarColor }}
           >
             Guardar
           </Button>

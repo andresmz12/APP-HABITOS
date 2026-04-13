@@ -40,28 +40,30 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { partner1, partner2 } = await req.json();
-    const coupleId = crypto.randomUUID();
-    const config = await prisma.appConfig.create({
-      data: {
-        id: 'app',
-        coupleId,
-        isOnboardingComplete: true,
-        currentWeekKey: getCurrentWeekKey(),
-        partner1Name: partner1.name,
-        partner1AvatarColor: partner1.avatarColor,
-        partner1AvatarEmoji: partner1.avatarEmoji,
-        partner1NotificationTime: partner1.notificationTime ?? '20:00',
-        partner1NotificationsEnabled: partner1.notificationsEnabled ?? false,
-        partner2Name: partner2.name,
-        partner2AvatarColor: partner2.avatarColor,
-        partner2AvatarEmoji: partner2.avatarEmoji,
-        partner2NotificationTime: partner2.notificationTime ?? '20:00',
-        partner2NotificationsEnabled: partner2.notificationsEnabled ?? false,
-      },
+    const weekKey = getCurrentWeekKey();
+    const partnerData = {
+      isOnboardingComplete: true,
+      currentWeekKey: weekKey,
+      partner1Name: partner1.name,
+      partner1AvatarColor: partner1.avatarColor,
+      partner1AvatarEmoji: partner1.avatarEmoji,
+      partner1NotificationTime: partner1.notificationTime ?? '20:00',
+      partner1NotificationsEnabled: partner1.notificationsEnabled ?? false,
+      partner2Name: partner2.name,
+      partner2AvatarColor: partner2.avatarColor,
+      partner2AvatarEmoji: partner2.avatarEmoji,
+      partner2NotificationTime: partner2.notificationTime ?? '20:00',
+      partner2NotificationsEnabled: partner2.notificationsEnabled ?? false,
+    };
+    // upsert so re-running onboarding never fails with a unique constraint error
+    const config = await prisma.appConfig.upsert({
+      where: { id: 'app' },
+      update: partnerData,
+      create: { id: 'app', coupleId: crypto.randomUUID(), ...partnerData },
     });
     return NextResponse.json({ config: dbToConfig(config) });
   } catch {
-    return NextResponse.json({ error: 'Failed to create config' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save config' }, { status: 500 });
   }
 }
 
