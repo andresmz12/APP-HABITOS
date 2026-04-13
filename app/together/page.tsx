@@ -9,7 +9,8 @@ import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
 import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
-import { Calendar } from 'lucide-react';
+import { Calendar, Heart } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 
 export default function TogetherPage() {
   const { appConfig } = useAppStore();
@@ -31,23 +32,38 @@ export default function TogetherPage() {
     );
   }
 
+  const p1 = appConfig.partner1;
+  const p2 = appConfig.partner2;
+
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
-      <div className="px-4 pt-12 pb-4 space-y-4">
-        {/* Header */}
-        <div>
-          <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">
-            Esta semana
-          </p>
-          <h1 className="text-white text-xl font-bold mt-0.5">
-            Juntos
-          </h1>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Calendar size={12} className="text-gray-600" />
-            <p className="text-gray-600 text-xs">{formatWeekRange(weekKey)}</p>
-          </div>
+      {/* Header with dual-partner gradient */}
+      <div
+        className="px-4 pt-12 pb-5"
+        style={{
+          background: `radial-gradient(ellipse 140% 160px at 20% 0%, ${p1.avatarColor}18 0%, transparent 60%),
+                       radial-gradient(ellipse 140% 160px at 80% 0%, ${p2.avatarColor}18 0%, transparent 60%)`,
+        }}
+      >
+        {/* Both partners with heart */}
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Avatar emoji={p1.avatarEmoji} color={p1.avatarColor} name={p1.name} size="md" />
+          <Heart size={16} className="text-pink-400" fill="currentColor" />
+          <Avatar emoji={p2.avatarEmoji} color={p2.avatarColor} name={p2.name} size="md" />
         </div>
 
+        <div className="text-center">
+          <h1 className="text-white text-2xl font-black leading-none">
+            {p1.name} &amp; {p2.name}
+          </h1>
+          <div className="flex items-center justify-center gap-1.5 mt-1.5">
+            <Calendar size={11} className="text-gray-600" />
+            <p className="text-gray-500 text-xs">{formatWeekRange(weekKey)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 space-y-4">
         {/* Scoreboard */}
         {statLoading ? (
           <div className="h-64 bg-[#1A1A24] rounded-2xl animate-pulse" />
@@ -63,19 +79,27 @@ export default function TogetherPage() {
         )}
 
         {/* Weekly calendar per partner */}
-        <Card className="space-y-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <Card className="space-y-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
             Días completados
           </p>
 
           {[
-            { partner: appConfig.partner1, habits: p1Habits, completions: p1Week },
-            { partner: appConfig.partner2, habits: p2Habits, completions: p2Week },
+            { partner: p1, habits: p1Habits, completions: p1Week },
+            { partner: p2, habits: p2Habits, completions: p2Week },
           ].map(({ partner, habits, completions }) => (
             <div key={partner.id} className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-base">{partner.avatarEmoji}</span>
-                <span className="text-sm text-gray-300 font-medium">{partner.name}</span>
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-sm"
+                  style={{ backgroundColor: partner.avatarColor + '25', border: `1px solid ${partner.avatarColor}50` }}
+                >
+                  {partner.avatarEmoji}
+                </div>
+                <span className="text-sm text-gray-300 font-semibold">{partner.name}</span>
+                <span className="text-xs text-gray-600 ml-auto">
+                  {completions.length} completaciones
+                </span>
               </div>
               <WeeklyCalendar
                 weekKey={weekKey}

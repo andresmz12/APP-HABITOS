@@ -16,19 +16,30 @@ interface HabitCardProps {
 
 export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
   const [loading, setLoading] = useState(false);
+  // Optimistic state: null = use real completion prop, true/false = override
+  const [optimisticCompleted, setOptimisticCompleted] = useState<boolean | null>(null);
   const [showPoints, setShowPoints] = useState(false);
-  const isCompleted = !!completion;
+
+  const isCompleted = optimisticCompleted !== null ? optimisticCompleted : !!completion;
   const color = PARTNER_COLORS[habit.partnerId].primary;
 
   async function handleToggle() {
     if (loading) return;
+    const willBeCompleted = !isCompleted;
+    // Apply optimistic update immediately for instant feedback
+    setOptimisticCompleted(willBeCompleted);
+    if (willBeCompleted) {
+      setShowPoints(true);
+      setTimeout(() => setShowPoints(false), 1500);
+    }
     setLoading(true);
     try {
       await toggleCompletion(habit, completion);
-      if (!isCompleted) {
-        setShowPoints(true);
-        setTimeout(() => setShowPoints(false), 1500);
-      }
+      // Clear optimistic — real state arrives via next poll
+      setOptimisticCompleted(null);
+    } catch {
+      // Revert on error
+      setOptimisticCompleted(!willBeCompleted);
     } finally {
       setLoading(false);
     }
@@ -38,14 +49,18 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
     <motion.div
       layout
       className={cn(
-        'flex items-center gap-3 p-4 rounded-2xl transition-colors',
-        isCompleted ? 'bg-[#1e1e2a]' : 'bg-[#1A1A24]'
+        'flex items-center gap-3 p-4 rounded-2xl border transition-colors duration-200',
+        isCompleted
+          ? 'bg-[#1e1e2a] border-white/5'
+          : 'bg-[#1A1A24] border-transparent'
       )}
     >
       {/* Emoji icon */}
       <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-        style={{ backgroundColor: isCompleted ? color + '22' : 'rgba(255,255,255,0.05)' }}
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-colors duration-200"
+        style={{
+          backgroundColor: isCompleted ? color + '22' : 'rgba(255,255,255,0.05)',
+        }}
       >
         {habit.icon}
       </div>
@@ -54,13 +69,13 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            'font-medium text-sm truncate',
-            isCompleted ? 'line-through opacity-50' : 'text-white'
+            'font-semibold text-sm truncate transition-all duration-200',
+            isCompleted ? 'line-through opacity-40 text-gray-300' : 'text-white'
           )}
         >
           {habit.name}
         </p>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-[11px] text-gray-600 mt-0.5">
           {habit.frequencyType === 'daily'
             ? 'Todos los días'
             : `${habit.frequencyDays} días/semana`}
@@ -71,46 +86,61 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
       {onEdit && (
         <button
           onClick={onEdit}
-          className="w-7 h-7 rounded-lg bg-[#22223A] flex items-center justify-center text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+          className="w-7 h-7 rounded-lg bg-[#22223A] flex items-center justify-center text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
         >
-          <Pencil size={12} />
+          <Pencil size={11} />
         </button>
       )}
 
-      {/* Check button */}
+      {/* Check button with +1 float */}
       <div className="relative flex-shrink-0">
         <AnimatePresence>
           {showPoints && (
             <motion.span
               key="points"
-              className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold"
+              className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold pointer-events-none"
               style={{ color }}
               initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 0, y: -14 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 0.9 }}
             >
               +1
             </motion.span>
           )}
         </AnimatePresence>
+
         <motion.button
           onClick={handleToggle}
           disabled={loading}
-          whileTap={{ scale: 0.85 }}
+          whileTap={{ scale: 0.82 }}
           className={cn(
             'w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-200',
-            isCompleted
-              ? 'border-transparent'
-              : 'border-[#3a3a5a] hover:border-gray-400'
+            isCompleted ? 'border-transparent' : 'border-[#3a3a5a] hover:border-[#5a5a7a]'
           )}
           style={
             isCompleted
-              ? { backgroundColor: color, borderColor: color }
+              ? {
+                  backgroundColor: color,
+                  borderColor: color,
+                  boxShadow: `0 0 12px ${color}55`,
+                }
               : {}
           }
         >
-          {isCompleted && <Check size={16} color="white" strokeWidth={3} />}
+          <AnimatePresence mode="wait">
+            {isCompleted && (
+              <motion.div
+                key="check"
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              >
+                <Check size={16} color="white" strokeWidth={3} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.button>
       </div>
     </motion.div>

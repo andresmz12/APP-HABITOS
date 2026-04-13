@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeftRight } from 'lucide-react';
 import { useAppStore } from '@/lib/stores/appStore';
 import { useHabits } from '@/lib/hooks/useHabits';
 import { useTodayCompletions } from '@/lib/hooks/useCompletions';
@@ -41,20 +41,29 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
-      {/* Header */}
-      <div className="px-4 pt-12 pb-4 space-y-4">
+      {/* Header with partner color tint */}
+      <div
+        className="px-4 pt-12 pb-5"
+        style={{
+          background: `radial-gradient(ellipse 100% 180px at 50% 0%, ${partnerColor}1a 0%, transparent 100%)`,
+        }}
+      >
         {/* Partner switcher row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">
-              Viendo hábitos de
+            <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest">
+              Hábitos de
             </p>
-            <h1 className="text-white text-xl font-bold mt-0.5">{partner.name}</h1>
+            <h1 className="text-white text-2xl font-black mt-0.5 leading-none">
+              {partner.name}
+            </h1>
           </div>
-          {/* Switch to other partner */}
+
+          {/* Switch partner button */}
           <button
             onClick={() => setActivePartner(otherPartnerId)}
-            className="flex items-center gap-2 bg-[#1A1A24] rounded-2xl px-3 py-2 hover:bg-[#22223A] transition-colors"
+            className="flex items-center gap-2 rounded-2xl px-3 py-2 active:scale-95 transition-transform border border-white/8"
+            style={{ backgroundColor: `${partnerColor}15` }}
           >
             <Avatar
               emoji={otherPartner.avatarEmoji}
@@ -62,11 +71,14 @@ export default function HomePage() {
               name={otherPartner.name}
               size="sm"
             />
-            <span className="text-gray-300 text-xs font-medium">{otherPartner.name}</span>
+            <span className="text-gray-300 text-xs font-medium max-w-[64px] truncate">
+              {otherPartner.name}
+            </span>
+            <ArrowLeftRight size={11} className="text-gray-500" />
           </button>
         </div>
 
-        {/* Today's summary card */}
+        {/* Stats card */}
         <PartnerHeader
           partner={partner}
           completedToday={completions.length}
@@ -75,15 +87,17 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Habits */}
+      {/* Habits section */}
       <div className="px-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
             Hábitos de hoy
           </h2>
-          <span className="text-xs text-gray-600">
-            {completions.length}/{habits.length} completados
-          </span>
+          {habits.length > 0 && (
+            <span className="text-xs text-gray-600 tabular-nums">
+              {completions.length}/{habits.length}
+            </span>
+          )}
         </div>
 
         <HabitList
@@ -98,9 +112,12 @@ export default function HomePage() {
       {/* FAB */}
       <motion.button
         onClick={() => setAddOpen(true)}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.88 }}
         className="fixed bottom-24 right-5 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-20"
-        style={{ backgroundColor: PARTNER_COLORS[activePartnerId].primary }}
+        style={{
+          background: `linear-gradient(135deg, ${partnerColor}, ${partnerColor}bb)`,
+          boxShadow: `0 8px 24px ${partnerColor}55`,
+        }}
       >
         <Plus size={26} color="white" strokeWidth={2.5} />
       </motion.button>
@@ -112,8 +129,9 @@ export default function HomePage() {
         partnerId={activePartnerId}
       />
 
-      {/* Edit habit modal */}
+      {/* Edit habit modal — key forces remount when editing a different habit */}
       <HabitForm
+        key={editHabit?.id ?? 'edit'}
         open={!!editHabit}
         onClose={() => setEditHabit(null)}
         partnerId={activePartnerId}
