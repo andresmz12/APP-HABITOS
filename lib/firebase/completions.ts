@@ -1,31 +1,34 @@
-import {
-  addDoc,
-  deleteDoc,
-  query,
-  where,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { completionsCol, completionRef, weeklyStatRef } from './firestore';
 import { Habit, HabitCompletion, PartnerId } from '../types/models';
-import { getDayKey, getISOWeekKey } from '../utils/dates';
-import { updateWeeklyStatPoints } from './weeklyStats';
+import { getDayKey } from '../utils/dates';
+
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetch(path, options);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
 
 export function subscribeToTodayCompletions(
   partnerId: PartnerId,
   callback: (completions: HabitCompletion[]) => void
 ): () => void {
-  const dateKey = getDayKey(new Date());
-  const q = query(
-    completionsCol(),
-    where('partnerId', '==', partnerId),
-    where('dateKey', '==', dateKey)
-  );
+  let active = true;
 
-  return onSnapshot(q, (snap) => {
-    const completions = snap.docs.map((d) => ({ ...d.data(), id: d.id } as HabitCompletion));
-    callback(completions);
-  });
+  async function poll() {
+    if (!active) return;
+    try {
+      const dateKey = getDayKey(new Date());
+      const { completions } = await apiFetch(
+        `/api/completions?partnerId=${partnerId}&dateKey=${dateKey}`
+      );
+      if (active) callback(completions ?? []);
+    } catch {
+      if (active) callback([]);
+    }
+  }
+
+  poll();
+  const timer = setInterval(poll, 5000);
+  return () => { active = false; clearInterval(timer); };
 }
 
 export function subscribeToWeekCompletions(
@@ -33,16 +36,23 @@ export function subscribeToWeekCompletions(
   weekKey: string,
   callback: (completions: HabitCompletion[]) => void
 ): () => void {
-  const q = query(
-    completionsCol(),
-    where('partnerId', '==', partnerId),
-    where('weekKey', '==', weekKey)
-  );
+  let active = true;
 
-  return onSnapshot(q, (snap) => {
-    const completions = snap.docs.map((d) => ({ ...d.data(), id: d.id } as HabitCompletion));
-    callback(completions);
-  });
+  async function poll() {
+    if (!active) return;
+    try {
+      const { completions } = await apiFetch(
+        `/api/completions?partnerId=${partnerId}&weekKey=${weekKey}`
+      );
+      if (active) callback(completions ?? []);
+    } catch {
+      if (active) callback([]);
+    }
+  }
+
+  poll();
+  const timer = setInterval(poll, 5000);
+  return () => { active = false; clearInterval(timer); };
 }
 
 export async function toggleCompletion(
@@ -50,23 +60,12 @@ export async function toggleCompletion(
   existingCompletion: HabitCompletion | null
 ): Promise<void> {
   if (existingCompletion) {
-    await deleteDoc(completionRef(existingCompletion.id));
-    await updateWeeklyStatPoints(habit.partnerId, -1, habit.id);
+    await apiFetch(`/api/completions/${existingCompletion.id}`, { method: 'DELETE' });
   } else {
-    const dateKey = getDayKey(new Date());
-    const weekKey = getISOWeekKey(new Date());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await addDoc(completionsCol(), {
-      habitId: habit.id,
-      partnerId: habit.partnerId,
-      completedAt: serverTimestamp(),
-      dateKey,
-      weekKey,
-      pointsEarned: 1,
-    } as any);
-    await updateWeeklyStatPoints(habit.partnerId, 1, habit.id);
+    await apiFetch('/api/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ habitId: habit.id, partnerId: habit.partnerId }),
+    });
   }
 }
-
-// Unused weeklyStatRef import guard
-void weeklyStatRef;

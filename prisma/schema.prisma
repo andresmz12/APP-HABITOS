@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppConfig {
+  id                           String    @id @default("app")
+  coupleId                     String
+  isOnboardingComplete         Boolean   @default(false)
+  currentWeekKey               String
+  partner1Name                 String    @default("")
+  partner1AvatarColor          String    @default("#6C63FF")
+  partner1AvatarEmoji          String    @default("🧑")
+  partner1NotificationTime     String    @default("20:00")
+  partner1NotificationsEnabled Boolean   @default(false)
+  partner2Name                 String    @default("")
+  partner2AvatarColor          String    @default("#FF6B9D")
+  partner2AvatarEmoji          String    @default("👩")
+  partner2NotificationTime     String    @default("20:00")
+  partner2NotificationsEnabled Boolean   @default(false)
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+}
+
+model Habit {
+  id            String            @id @default(cuid())
+  partnerId     String
+  name          String
+  icon          String            @default("🏃")
+  frequencyType String            @default("daily")
+  frequencyDays Int               @default(7)
+  isArchived    Boolean           @default(false)
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  completions   HabitCompletion[]
+}
+
+model HabitCompletion {
+  id           String   @id @default(cuid())
+  habitId      String
+  partnerId    String
+  completedAt  DateTime @default(now())
+  dateKey      String
+  weekKey      String
+  pointsEarned Int      @default(1)
+  habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+}
+
+model WeeklyStat {
+  weekKey                  String    @id
+  weekStart                DateTime
+  partner1TotalPoints      Int       @default(0)
+  partner1TotalCompletions Int       @default(0)
+  partner2TotalPoints      Int       @default(0)
+  partner2TotalCompletions Int       @default(0)
+  finalizedAt              DateTime?
+  createdAt                DateTime  @default(now())
+}

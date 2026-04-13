@@ -1,5 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
-
 export type PartnerId = 'partner1' | 'partner2';
 
 export interface Partner {
@@ -18,7 +16,7 @@ export interface AppConfig {
   currentWeekKey: string;
   partner1: Partner;
   partner2: Partner;
-  createdAt: Timestamp;
+  createdAt: Date | string;
 }
 
 export type FrequencyType = 'daily' | 'custom';
@@ -32,14 +30,14 @@ export interface Habit {
   frequencyDays: number; // 7 for daily, 1-6 for custom
   isArchived: boolean;
   sortOrder: number;
-  createdAt: Timestamp;
+  createdAt: Date | string;
 }
 
 export interface HabitCompletion {
   id: string;
   habitId: string;
   partnerId: PartnerId;
-  completedAt: Timestamp;
+  completedAt: Date | string;
   dateKey: string; // "2025-04-13"
   weekKey: string; // "2025-W15"
   pointsEarned: number;
@@ -52,8 +50,8 @@ export interface PartnerWeeklyStat {
 
 export interface WeeklyStat {
   weekKey: string;
-  weekStart: Timestamp;
+  weekStart: Date | string;
   partner1: PartnerWeeklyStat;
   partner2: PartnerWeeklyStat;
-  finalizedAt?: Timestamp;
+  finalizedAt?: Date | string;
 }
