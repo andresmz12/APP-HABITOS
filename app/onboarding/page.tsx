@@ -53,6 +53,7 @@ export default function OnboardingPage() {
       router.push('/home');
     } catch {
       setError('Hubo un error al guardar. Intenta de nuevo.');
+    } finally {
       setLoading(false);
     }
   }
@@ -197,8 +198,14 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {error && <p className="text-red-400 text-sm text-center">{error}</p>}
             </div>
+
+            {/* Error — outside scroll so always visible */}
+            {error && (
+              <div className="mx-6 mb-2 px-4 py-3 rounded-2xl bg-red-500/15 border border-red-500/30">
+                <p className="text-red-400 text-sm text-center font-medium">{error}</p>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="px-6 pb-8 pt-2 flex gap-3">
