@@ -174,7 +174,7 @@ export default function OnboardingPage() {
                         'h-12 rounded-xl text-2xl flex items-center justify-center transition-all active:scale-90',
                         current.avatarEmoji === e ? 'ring-2 scale-105' : 'bg-[#1A1A28]'
                       )}
-                      style={current.avatarEmoji === e ? { backgroundColor: accentColor + '30', ringColor: accentColor } : {}}
+                      style={current.avatarEmoji === e ? { backgroundColor: accentColor + '30', outlineColor: accentColor } : {}}
                     >
                       {e}
                     </button>

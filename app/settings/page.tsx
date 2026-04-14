@@ -228,7 +228,7 @@ function PartnerEditModal({
                 )}
                 style={
                   partner.avatarEmoji === e
-                    ? { backgroundColor: partner.avatarColor + '30', ringColor: partner.avatarColor }
+                    ? { backgroundColor: partner.avatarColor + '30', outlineColor: partner.avatarColor }
                     : {}
                 }
               >
