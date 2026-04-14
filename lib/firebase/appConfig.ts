@@ -66,11 +66,15 @@ export async function updatePartner(
   });
 }
 
-export async function updateNotificationEmail(email: string): Promise<void> {
+export async function updatePartnerEmail(
+  partnerId: 'partner1' | 'partner2',
+  email: string
+): Promise<void> {
+  const key = partnerId === 'partner1' ? 'partner1NotificationEmail' : 'partner2NotificationEmail';
   await apiFetch('/api/config', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ notificationEmail: email }),
+    body: JSON.stringify({ [key]: email }),
   });
 }
 

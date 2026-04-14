@@ -16,7 +16,8 @@ export interface AppConfig {
   currentWeekKey: string;
   partner1: Partner;
   partner2: Partner;
-  notificationEmail?: string;
+  partner1NotificationEmail?: string;
+  partner2NotificationEmail?: string;
   createdAt: Date | string;
 }
 

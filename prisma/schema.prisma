@@ -22,7 +22,8 @@ model AppConfig {
   partner2AvatarEmoji          String    @default("👩")
   partner2NotificationTime     String    @default("20:00")
   partner2NotificationsEnabled Boolean   @default(false)
-  notificationEmail            String?
+  partner1NotificationEmail    String?
+  partner2NotificationEmail    String?
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 }

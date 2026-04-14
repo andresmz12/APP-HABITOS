@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/stores/appStore';
-import { updatePartner, updateNotificationEmail } from '@/lib/firebase/appConfig';
+import { updatePartner, updatePartnerEmail } from '@/lib/firebase/appConfig';
 import { Partner } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
@@ -19,9 +19,9 @@ export default function SettingsPage() {
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [emailInput, setEmailInput] = useState('');
-  const [emailSaved, setEmailSaved] = useState(false);
-  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailInputs, setEmailInputs] = useState<{ partner1: string; partner2: string }>({ partner1: '', partner2: '' });
+  const [emailSaved, setEmailSaved] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
+  const [emailSaving, setEmailSaving] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
   const router = useRouter();
 
   if (!appConfig) {
@@ -133,49 +133,64 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        {/* Email reminder */}
+        {/* Email reminders */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
             Recordatorio por email
           </p>
-          <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-white/5">
-            <div className="flex items-center gap-2">
-              <Mail size={14} className="text-violet-400" />
-              <p className="text-gray-300 text-sm font-semibold">Recibe un recordatorio diario</p>
-            </div>
-            <p className="text-gray-600 text-xs">
-              {appConfig.notificationEmail
-                ? `Email actual: ${appConfig.notificationEmail}`
-                : 'Agrega un email y configura cron-job.org para enviar el recordatorio cada día.'}
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={emailInput || appConfig.notificationEmail || ''}
-                onChange={e => { setEmailInput(e.target.value); setEmailSaved(false); }}
-                placeholder="correo@ejemplo.com"
-                className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm outline-none focus:ring-1 focus:ring-violet-500 transition-all"
-              />
-              <button
-                disabled={emailSaving || !(emailInput || appConfig.notificationEmail)}
-                onClick={async () => {
-                  const val = emailInput || appConfig.notificationEmail || '';
-                  if (!val) return;
-                  setEmailSaving(true);
-                  try {
-                    await updateNotificationEmail(val);
-                    setAppConfig({ ...appConfig, notificationEmail: val });
-                    setEmailSaved(true);
-                    setEmailInput('');
-                  } finally {
-                    setEmailSaving(false);
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-violet-600 disabled:opacity-40 transition-opacity"
-              >
-                {emailSaving ? '...' : emailSaved ? '✓' : 'Guardar'}
-              </button>
-            </div>
+          <div className="space-y-3">
+            {([appConfig.partner1, appConfig.partner2] as Partner[]).map((partner) => {
+              const pid = partner.id as 'partner1' | 'partner2';
+              const currentEmail = pid === 'partner1' ? appConfig.partner1NotificationEmail : appConfig.partner2NotificationEmail;
+              return (
+                <div
+                  key={pid}
+                  className="rounded-2xl px-5 py-4 space-y-3 border"
+                  style={{ background: partner.avatarColor + '0d', borderColor: partner.avatarColor + '30' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Mail size={14} style={{ color: partner.avatarColor }} />
+                    <p className="text-gray-200 text-sm font-semibold">{partner.name}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={emailInputs[pid] || currentEmail || ''}
+                      onChange={e => {
+                        setEmailInputs(prev => ({ ...prev, [pid]: e.target.value }));
+                        setEmailSaved(prev => ({ ...prev, [pid]: false }));
+                      }}
+                      placeholder="correo@ejemplo.com"
+                      className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm outline-none transition-all"
+                      style={{ outline: 'none' }}
+                    />
+                    <button
+                      disabled={emailSaving[pid] || !(emailInputs[pid] || currentEmail)}
+                      onClick={async () => {
+                        const val = emailInputs[pid] || currentEmail || '';
+                        if (!val) return;
+                        setEmailSaving(prev => ({ ...prev, [pid]: true }));
+                        try {
+                          await updatePartnerEmail(pid, val);
+                          setAppConfig({
+                            ...appConfig,
+                            [`${pid}NotificationEmail`]: val,
+                          });
+                          setEmailSaved(prev => ({ ...prev, [pid]: true }));
+                          setEmailInputs(prev => ({ ...prev, [pid]: '' }));
+                        } finally {
+                          setEmailSaving(prev => ({ ...prev, [pid]: false }));
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-40 transition-opacity"
+                      style={{ backgroundColor: partner.avatarColor }}
+                    >
+                      {emailSaving[pid] ? '...' : emailSaved[pid] ? '✓' : 'Guardar'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
