@@ -57,7 +57,7 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
                   : pct === 0
                   ? 'rgba(255,255,255,0.06)'
                   : color + Math.round(pct * 0xff).toString(16).padStart(2, '0'),
-                ...(today ? { ringColor: color } : {}),
+                ...(today ? { '--tw-ring-color': color } as React.CSSProperties : {}),
               }}
               title={`${format(day, 'EEE dd/MM')}: ${count}/${total}`}
             >

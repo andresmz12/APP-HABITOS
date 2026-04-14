@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const { appConfig, setAppConfig } = useAppStore();
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const router = useRouter();
 
   if (!appConfig) {
@@ -31,6 +32,7 @@ export default function SettingsPage() {
   async function handleSavePartner(partner: Partner) {
     if (!appConfig) return;
     setSaving(true);
+    setSaveError('');
     try {
       await updatePartner(partner.id, {
         name: partner.name,
@@ -41,6 +43,8 @@ export default function SettingsPage() {
       });
       setAppConfig({ ...appConfig, [partner.id]: partner });
       setEditPartner(null);
+    } catch {
+      setSaveError('No se pudo guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -152,7 +156,8 @@ export default function SettingsPage() {
           onSave={() => handleSavePartner(editPartner)}
           onRequestNotif={() => requestNotificationPermission(editPartner)}
           saving={saving}
-          onClose={() => setEditPartner(null)}
+          saveError={saveError}
+          onClose={() => { setEditPartner(null); setSaveError(''); }}
         />
       )}
 
@@ -167,6 +172,7 @@ function PartnerEditModal({
   onSave,
   onRequestNotif,
   saving,
+  saveError,
   onClose,
 }: {
   partner: Partner;
@@ -174,6 +180,7 @@ function PartnerEditModal({
   onSave: () => void;
   onRequestNotif: () => void;
   saving: boolean;
+  saveError: string;
   onClose: () => void;
 }) {
   const EMOJIS = [...STEP_EMOJIS, ...HABIT_EMOJIS.slice(0, 10)];
@@ -306,6 +313,12 @@ function PartnerEditModal({
             )}
           </button>
         </div>
+
+        {saveError && (
+          <p className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+            {saveError}
+          </p>
+        )}
 
         <div className="flex gap-3 pt-1">
           <Button variant="secondary" onClick={onClose} className="flex-1">

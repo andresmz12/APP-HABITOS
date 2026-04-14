@@ -4,4 +4,4 @@ builder = "nixpacks"
 [deploy]
 startCommand = "./node_modules/.bin/prisma db push --accept-data-loss && npm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 60
+healthcheckTimeout = 300
