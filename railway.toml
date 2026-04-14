@@ -1,7 +1,8 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build && ./node_modules/.bin/prisma db push --accept-data-loss"
 
 [deploy]
-startCommand = "./node_modules/.bin/prisma db push --accept-data-loss && npm start"
+startCommand = "npm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 300
+healthcheckTimeout = 60
