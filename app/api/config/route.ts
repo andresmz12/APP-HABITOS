@@ -25,6 +25,7 @@ function dbToConfig(row: Awaited<ReturnType<typeof prisma.appConfig.findUnique>>
       notificationTime: row.partner2NotificationTime,
       notificationsEnabled: row.partner2NotificationsEnabled,
     },
+    notificationEmail: row.notificationEmail ?? undefined,
   };
 }
 
@@ -73,6 +74,7 @@ export async function PATCH(req: NextRequest) {
     const data: Record<string, unknown> = {};
 
     if (body.currentWeekKey) data.currentWeekKey = body.currentWeekKey;
+    if (body.notificationEmail !== undefined) data.notificationEmail = body.notificationEmail || null;
 
     if (body.partner1) {
       const p = body.partner1;

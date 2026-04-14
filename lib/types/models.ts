@@ -16,6 +16,7 @@ export interface AppConfig {
   currentWeekKey: string;
   partner1: Partner;
   partner2: Partner;
+  notificationEmail?: string;
   createdAt: Date | string;
 }
 
@@ -41,6 +42,7 @@ export interface HabitCompletion {
   dateKey: string; // "2025-04-13"
   weekKey: string; // "2025-W15"
   pointsEarned: number;
+  photoUrl?: string;
 }
 
 export interface PartnerWeeklyStat {

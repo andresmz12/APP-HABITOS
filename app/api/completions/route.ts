@@ -23,13 +23,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { habitId, partnerId } = await req.json();
+    const { habitId, partnerId, photoUrl } = await req.json();
     const dateKey = getDayKey(new Date());
     const weekKey = getISOWeekKey(new Date());
 
     const completion = await prisma.$transaction(async (tx) => {
       const c = await tx.habitCompletion.create({
-        data: { habitId, partnerId, dateKey, weekKey, pointsEarned: 1 },
+        data: { habitId, partnerId, dateKey, weekKey, pointsEarned: 1, photoUrl: photoUrl ?? null },
       });
 
       const field =

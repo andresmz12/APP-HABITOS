@@ -57,7 +57,8 @@ export function subscribeToWeekCompletions(
 
 export async function toggleCompletion(
   habit: Habit,
-  existingCompletion: HabitCompletion | null
+  existingCompletion: HabitCompletion | null,
+  photoUrl?: string
 ): Promise<void> {
   if (existingCompletion) {
     await apiFetch(`/api/completions/${existingCompletion.id}`, { method: 'DELETE' });
@@ -65,7 +66,7 @@ export async function toggleCompletion(
     await apiFetch('/api/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ habitId: habit.id, partnerId: habit.partnerId }),
+      body: JSON.stringify({ habitId: habit.id, partnerId: habit.partnerId, photoUrl }),
     });
   }
 }

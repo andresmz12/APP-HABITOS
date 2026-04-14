@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/stores/appStore';
-import { updatePartner } from '@/lib/firebase/appConfig';
+import { updatePartner, updateNotificationEmail } from '@/lib/firebase/appConfig';
 import { Partner } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS, HABIT_EMOJIS } from '@/lib/utils/constants';
-import { Bell, BellOff, Pencil } from 'lucide-react';
+import { Bell, BellOff, Pencil, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const STEP_EMOJIS = ['🧑', '👩', '🧑‍🤝‍🧑', '🐱', '🐶', '🦊', '🐼', '🦁', '🐙', '🌟'];
@@ -19,6 +19,9 @@ export default function SettingsPage() {
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
   const router = useRouter();
 
   if (!appConfig) {
@@ -128,6 +131,52 @@ export default function SettingsPage() {
               </div>
             </button>
           ))}
+        </div>
+
+        {/* Email reminder */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
+            Recordatorio por email
+          </p>
+          <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-white/5">
+            <div className="flex items-center gap-2">
+              <Mail size={14} className="text-violet-400" />
+              <p className="text-gray-300 text-sm font-semibold">Recibe un recordatorio diario</p>
+            </div>
+            <p className="text-gray-600 text-xs">
+              {appConfig.notificationEmail
+                ? `Email actual: ${appConfig.notificationEmail}`
+                : 'Agrega un email y configura cron-job.org para enviar el recordatorio cada día.'}
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={emailInput || appConfig.notificationEmail || ''}
+                onChange={e => { setEmailInput(e.target.value); setEmailSaved(false); }}
+                placeholder="correo@ejemplo.com"
+                className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm outline-none focus:ring-1 focus:ring-violet-500 transition-all"
+              />
+              <button
+                disabled={emailSaving || !(emailInput || appConfig.notificationEmail)}
+                onClick={async () => {
+                  const val = emailInput || appConfig.notificationEmail || '';
+                  if (!val) return;
+                  setEmailSaving(true);
+                  try {
+                    await updateNotificationEmail(val);
+                    setAppConfig({ ...appConfig, notificationEmail: val });
+                    setEmailSaved(true);
+                    setEmailInput('');
+                  } finally {
+                    setEmailSaving(false);
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-violet-600 disabled:opacity-40 transition-opacity"
+              >
+                {emailSaving ? '...' : emailSaved ? '✓' : 'Guardar'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Reset onboarding */}

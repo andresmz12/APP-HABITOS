@@ -22,6 +22,7 @@ model AppConfig {
   partner2AvatarEmoji          String    @default("👩")
   partner2NotificationTime     String    @default("20:00")
   partner2NotificationsEnabled Boolean   @default(false)
+  notificationEmail            String?
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 }
@@ -47,6 +48,7 @@ model HabitCompletion {
   dateKey      String
   weekKey      String
   pointsEarned Int      @default(1)
+  photoUrl     String?
   habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
 }
 
