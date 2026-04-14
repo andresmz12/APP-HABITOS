@@ -14,6 +14,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: false, reason: 'No config found' });
     }
 
+    // Check if current UTC time matches any configured notification time
+    const now = new Date();
+    const currentTime = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+    const times = config.notificationTimes.split(',').map((t) => t.trim());
+    if (!times.includes(currentTime)) {
+      return NextResponse.json({ sent: false, reason: 'Not a notification time', currentTime, times });
+    }
+
     const emails = [
       config.partner1NotificationEmail,
       config.partner2NotificationEmail,
@@ -58,7 +66,7 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    return NextResponse.json({ sent: true, to: emails });
+    return NextResponse.json({ sent: true, to: emails, at: currentTime });
   } catch (err) {
     console.error('Notify error:', err);
     return NextResponse.json({ error: 'Failed to send' }, { status: 500 });

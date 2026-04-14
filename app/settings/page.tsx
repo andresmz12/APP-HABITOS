@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/stores/appStore';
-import { updatePartner, updatePartnerEmail } from '@/lib/firebase/appConfig';
+import { updatePartner, updatePartnerEmail, updateNotificationTimes } from '@/lib/firebase/appConfig';
 import { Partner } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS, HABIT_EMOJIS } from '@/lib/utils/constants';
-import { Bell, BellOff, Pencil, Mail } from 'lucide-react';
+import { Bell, BellOff, Pencil, Mail, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 const STEP_EMOJIS = ['🧑', '👩', '🧑‍🤝‍🧑', '🐱', '🐶', '🦊', '🐼', '🦁', '🐙', '🌟'];
@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [emailInputs, setEmailInputs] = useState<{ partner1: string; partner2: string }>({ partner1: '', partner2: '' });
   const [emailSaved, setEmailSaved] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
   const [emailSaving, setEmailSaving] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
+  const [newTime, setNewTime] = useState('');
+  const [timesSaving, setTimesSaving] = useState(false);
   const router = useRouter();
 
   if (!appConfig) {
@@ -139,6 +141,7 @@ export default function SettingsPage() {
             Recordatorio por email
           </p>
           <div className="space-y-3">
+            {/* Email per partner */}
             {([appConfig.partner1, appConfig.partner2] as Partner[]).map((partner) => {
               const pid = partner.id as 'partner1' | 'partner2';
               const currentEmail = pid === 'partner1' ? appConfig.partner1NotificationEmail : appConfig.partner2NotificationEmail;
@@ -162,7 +165,6 @@ export default function SettingsPage() {
                       }}
                       placeholder="correo@ejemplo.com"
                       className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm outline-none transition-all"
-                      style={{ outline: 'none' }}
                     />
                     <button
                       disabled={emailSaving[pid] || !(emailInputs[pid] || currentEmail)}
@@ -172,10 +174,7 @@ export default function SettingsPage() {
                         setEmailSaving(prev => ({ ...prev, [pid]: true }));
                         try {
                           await updatePartnerEmail(pid, val);
-                          setAppConfig({
-                            ...appConfig,
-                            [`${pid}NotificationEmail`]: val,
-                          });
+                          setAppConfig({ ...appConfig, [`${pid}NotificationEmail`]: val });
                           setEmailSaved(prev => ({ ...prev, [pid]: true }));
                           setEmailInputs(prev => ({ ...prev, [pid]: '' }));
                         } finally {
@@ -191,6 +190,77 @@ export default function SettingsPage() {
                 </div>
               );
             })}
+
+            {/* Notification times */}
+            <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-white/5">
+              <div className="flex items-center gap-2">
+                <Bell size={14} className="text-violet-400" />
+                <p className="text-gray-200 text-sm font-semibold">Horarios de recordatorio</p>
+              </div>
+
+              {/* Time chips */}
+              <div className="flex flex-wrap gap-2">
+                {appConfig.notificationTimes.split(',').map((t) => t.trim()).filter(Boolean).map((time) => (
+                  <div
+                    key={time}
+                    className="flex items-center gap-1.5 bg-violet-600/20 border border-violet-500/30 rounded-xl px-3 py-1.5"
+                  >
+                    <span className="text-violet-300 text-sm font-semibold">{time}</span>
+                    <button
+                      disabled={timesSaving}
+                      onClick={async () => {
+                        const updated = appConfig.notificationTimes
+                          .split(',').map(t => t.trim()).filter(t => t && t !== time);
+                        setTimesSaving(true);
+                        try {
+                          await updateNotificationTimes(updated.length ? updated : ['20:00']);
+                          setAppConfig({ ...appConfig, notificationTimes: updated.length ? updated.join(',') : '20:00' });
+                        } finally {
+                          setTimesSaving(false);
+                        }
+                      }}
+                      className="text-violet-400 hover:text-white transition-colors disabled:opacity-40"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add time */}
+              {appConfig.notificationTimes.split(',').filter(Boolean).length < 5 && (
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    value={newTime}
+                    onChange={e => setNewTime(e.target.value)}
+                    className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
+                  />
+                  <button
+                    disabled={!newTime || timesSaving}
+                    onClick={async () => {
+                      if (!newTime) return;
+                      const current = appConfig.notificationTimes.split(',').map(t => t.trim()).filter(Boolean);
+                      if (current.includes(newTime)) return;
+                      const updated = [...current, newTime];
+                      setTimesSaving(true);
+                      try {
+                        await updateNotificationTimes(updated);
+                        setAppConfig({ ...appConfig, notificationTimes: updated.join(',') });
+                        setNewTime('');
+                      } finally {
+                        setTimesSaving(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-violet-600 disabled:opacity-40 flex items-center gap-1.5 transition-opacity"
+                  >
+                    <Plus size={14} />
+                    Agregar
+                  </button>
+                </div>
+              )}
+              <p className="text-gray-600 text-xs">Los horarios son en UTC. Configura cron-job.org para ejecutar cada 15 min.</p>
+            </div>
           </div>
         </div>
 

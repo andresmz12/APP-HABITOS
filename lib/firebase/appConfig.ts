@@ -78,5 +78,13 @@ export async function updatePartnerEmail(
   });
 }
 
+export async function updateNotificationTimes(times: string[]): Promise<void> {
+  await apiFetch('/api/config', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notificationTimes: times.join(',') }),
+  });
+}
+
 // Unused export kept for compatibility
 export { getCurrentWeekKey };

@@ -24,6 +24,7 @@ model AppConfig {
   partner2NotificationsEnabled Boolean   @default(false)
   partner1NotificationEmail    String?
   partner2NotificationEmail    String?
+  notificationTimes            String    @default("20:00")
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 }

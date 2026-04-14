@@ -27,6 +27,7 @@ function dbToConfig(row: Awaited<ReturnType<typeof prisma.appConfig.findUnique>>
     },
     partner1NotificationEmail: row.partner1NotificationEmail ?? undefined,
     partner2NotificationEmail: row.partner2NotificationEmail ?? undefined,
+    notificationTimes: row.notificationTimes,
   };
 }
 
@@ -77,6 +78,7 @@ export async function PATCH(req: NextRequest) {
     if (body.currentWeekKey) data.currentWeekKey = body.currentWeekKey;
     if (body.partner1NotificationEmail !== undefined) data.partner1NotificationEmail = body.partner1NotificationEmail || null;
     if (body.partner2NotificationEmail !== undefined) data.partner2NotificationEmail = body.partner2NotificationEmail || null;
+    if (body.notificationTimes !== undefined) data.notificationTimes = body.notificationTimes || '20:00';
 
     if (body.partner1) {
       const p = body.partner1;

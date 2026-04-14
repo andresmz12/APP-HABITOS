@@ -18,6 +18,7 @@ export interface AppConfig {
   partner2: Partner;
   partner1NotificationEmail?: string;
   partner2NotificationEmail?: string;
+  notificationTimes: string; // comma-separated "HH:mm,HH:mm"
   createdAt: Date | string;
 }
 
