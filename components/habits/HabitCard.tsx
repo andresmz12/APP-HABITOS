@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Pencil } from 'lucide-react';
 import { Habit, HabitCompletion } from '@/lib/types/models';
@@ -24,6 +24,15 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
   const isCompleted = optimisticCompleted !== null ? optimisticCompleted : !!completion;
   const color = PARTNER_COLORS[habit.partnerId].primary;
 
+  // Clear optimistic state once polling confirms the real state
+  useEffect(() => {
+    if (optimisticCompleted === true && completion !== null) {
+      setOptimisticCompleted(null);
+    } else if (optimisticCompleted === false && completion === null) {
+      setOptimisticCompleted(null);
+    }
+  }, [completion, optimisticCompleted]);
+
   async function handleToggle() {
     if (loading) return;
 
@@ -33,9 +42,9 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
       setLoading(true);
       try {
         await toggleCompletion(habit, completion);
-        setOptimisticCompleted(null);
+        // optimisticCompleted stays false until polling confirms completion === null
       } catch {
-        setOptimisticCompleted(true);
+        setOptimisticCompleted(null); // revert: fall back to real completion prop
       } finally {
         setLoading(false);
       }
@@ -54,9 +63,9 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
     setLoading(true);
     try {
       await toggleCompletion(habit, completion, photoUrl);
-      setOptimisticCompleted(null);
+      // optimisticCompleted stays true until polling confirms completion !== null
     } catch {
-      setOptimisticCompleted(false);
+      setOptimisticCompleted(null); // revert: fall back to real completion prop (null = not completed)
     } finally {
       setLoading(false);
     }
