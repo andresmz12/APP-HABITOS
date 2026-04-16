@@ -1,5 +1,5 @@
 import { Habit, HabitCompletion, PartnerId } from '../types/models';
-import { getDayKey } from '../utils/dates';
+import { getCurrentDayKey } from '../utils/dates';
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
@@ -16,7 +16,7 @@ export function subscribeToTodayCompletions(
   async function poll() {
     if (!active) return;
     try {
-      const dateKey = getDayKey(new Date());
+      const dateKey = getCurrentDayKey();
       const { completions } = await apiFetch(
         `/api/completions?partnerId=${partnerId}&dateKey=${dateKey}`
       );

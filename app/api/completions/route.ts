@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getDayKey, getISOWeekKey } from '@/lib/utils/dates';
+import { getDayKey, getISOWeekKey, getCurrentDayKey, getCurrentWeekKey } from '@/lib/utils/dates';
 
 export async function GET(req: NextRequest) {
   const partnerId = req.nextUrl.searchParams.get('partnerId');
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { habitId, partnerId, photoUrl } = await req.json();
-    const dateKey = getDayKey(new Date());
-    const weekKey = getISOWeekKey(new Date());
+    const dateKey = getCurrentDayKey();
+    const weekKey = getCurrentWeekKey();
 
     const completion = await prisma.$transaction(async (tx) => {
       const c = await tx.habitCompletion.create({
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         update: field,
         create: {
           weekKey,
-          weekStart: new Date(),
+          weekStart: new Date(weekKey + 'T05:00:00Z'),
           partner1TotalPoints: partnerId === 'partner1' ? 1 : 0,
           partner1TotalCompletions: partnerId === 'partner1' ? 1 : 0,
           partner2TotalPoints: partnerId === 'partner2' ? 1 : 0,
