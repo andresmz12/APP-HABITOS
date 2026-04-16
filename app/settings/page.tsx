@@ -259,7 +259,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               )}
-              <p className="text-gray-600 text-xs">Los horarios son en UTC. Configura cron-job.org para ejecutar cada 15 min.</p>
+              <p className="text-gray-600 text-xs">Los horarios son en hora colombiana (UTC-5). Configura cron-job.org para ejecutar cada 15 min.</p>
             </div>
           </div>
         </div>

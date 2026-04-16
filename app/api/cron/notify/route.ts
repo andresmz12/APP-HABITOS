@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: false, reason: 'No config found' });
     }
 
-    // Check if current UTC time matches any configured notification time
+    // Check if current Colombia time (UTC-5, no DST) matches any configured notification time
     const now = new Date();
-    const currentTime = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+    const colombiaNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const currentTime = `${String(colombiaNow.getUTCHours()).padStart(2, '0')}:${String(colombiaNow.getUTCMinutes()).padStart(2, '0')}`;
     const times = config.notificationTimes.split(',').map((t) => t.trim());
     if (!times.includes(currentTime)) {
       return NextResponse.json({ sent: false, reason: 'Not a notification time', currentTime, times });
