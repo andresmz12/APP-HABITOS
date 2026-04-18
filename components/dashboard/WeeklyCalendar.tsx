@@ -3,9 +3,10 @@
 import { useMemo } from 'react';
 import { HabitCompletion, Habit } from '@/lib/types/models';
 import { getWeekDays, getDayKey, getCurrentDayKey } from '@/lib/utils/dates';
-import { DAY_NAMES_SHORT } from '@/lib/utils/constants';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
+
+// Sunday-first, matching getWeekDays order
+const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 interface WeeklyCalendarProps {
   weekKey: string;
@@ -27,7 +28,7 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
 
   return (
     <div className="grid grid-cols-7 gap-1.5">
-      {days.map((day, i) => {
+      {days.map((day) => {
         const key = getDayKey(day);
         const count = completionByDay.get(key) ?? 0;
         const total = habits.length;
@@ -35,6 +36,8 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
         const allDone = pct === 1 && total > 0;
         const today = key === getCurrentDayKey();
         const future = key > getCurrentDayKey();
+        // day.getUTCDay(): 0=Sun,1=Mon,...,6=Sat — use UTC since day is UTC-midnight
+        const label = DAY_LABELS[day.getUTCDay()];
 
         return (
           <div key={key} className="flex flex-col items-center gap-1">
@@ -44,7 +47,7 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
                 today ? 'text-white' : 'text-gray-600'
               )}
             >
-              {DAY_NAMES_SHORT[i]}
+              {label}
             </span>
             <div
               className={cn(
@@ -59,7 +62,7 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
                   : color + Math.round(pct * 0xff).toString(16).padStart(2, '0'),
                 ...(today ? { '--tw-ring-color': color } as React.CSSProperties : {}),
               }}
-              title={`${format(day, 'EEE dd/MM')}: ${count}/${total}`}
+              title={`${label} ${key}: ${count}/${total}`}
             >
               {!future && allDone && (
                 <span className="text-white text-xs font-black">✓</span>
