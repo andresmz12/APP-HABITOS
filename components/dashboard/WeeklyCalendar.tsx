@@ -2,9 +2,9 @@
 
 import { useMemo } from 'react';
 import { HabitCompletion, Habit } from '@/lib/types/models';
-import { getWeekDays, getDayKey } from '@/lib/utils/dates';
+import { getWeekDays, getDayKey, getCurrentDayKey } from '@/lib/utils/dates';
 import { DAY_NAMES_SHORT } from '@/lib/utils/constants';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
 
 interface WeeklyCalendarProps {
@@ -33,8 +33,8 @@ export function WeeklyCalendar({ weekKey, habits, completions, color }: WeeklyCa
         const total = habits.length;
         const pct = total > 0 ? count / total : 0;
         const allDone = pct === 1 && total > 0;
-        const today = isToday(day);
-        const future = day > new Date();
+        const today = key === getCurrentDayKey();
+        const future = key > getCurrentDayKey();
 
         return (
           <div key={key} className="flex flex-col items-center gap-1">
