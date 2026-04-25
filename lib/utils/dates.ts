@@ -61,3 +61,13 @@ export function getWeekEnd(weekKey: string): Date {
   const sunday = new Date(weekKey + 'T00:00:00Z');
   return new Date(sunday.getTime() + 6 * 24 * 60 * 60 * 1000);
 }
+
+export function getPrevWeekKey(weekKey: string): string {
+  const d = new Date(weekKey + 'T00:00:00Z');
+  return getDayKey(new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000));
+}
+
+export function getNextWeekKey(weekKey: string): string {
+  const d = new Date(weekKey + 'T00:00:00Z');
+  return getDayKey(new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000));
+}

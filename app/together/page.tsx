@@ -1,20 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { useAppStore } from '@/lib/stores/appStore';
 import { useHabits } from '@/lib/hooks/useHabits';
 import { useTodayCompletions, useWeekCompletions } from '@/lib/hooks/useCompletions';
 import { useWeeklyStats } from '@/lib/hooks/useWeeklyStats';
-import { getCurrentWeekKey, formatWeekRange } from '@/lib/utils/dates';
+import { getCurrentWeekKey, formatWeekRange, getPrevWeekKey, getNextWeekKey } from '@/lib/utils/dates';
 import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
 import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
-import { Calendar, Heart } from 'lucide-react';
+import { Calendar, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 
 export default function TogetherPage() {
   const { appConfig } = useAppStore();
-  const weekKey = getCurrentWeekKey();
+  const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
+  const isCurrentWeek = weekKey === getCurrentWeekKey();
   const { stat, loading: statLoading } = useWeeklyStats(weekKey);
 
   const { habits: p1Habits } = useHabits('partner1');
@@ -56,9 +58,27 @@ export default function TogetherPage() {
           <h1 className="text-white text-2xl font-black leading-none">
             {p1.name} &amp; {p2.name}
           </h1>
-          <div className="flex items-center justify-center gap-1.5 mt-1.5">
-            <Calendar size={11} className="text-gray-600" />
-            <p className="text-gray-500 text-xs">{formatWeekRange(weekKey)}</p>
+          <div className="flex items-center justify-center gap-2 mt-1.5">
+            <button
+              onClick={() => setWeekKey(getPrevWeekKey(weekKey))}
+              className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <div className="flex items-center gap-1.5">
+              <Calendar size={11} className="text-gray-600" />
+              <p className="text-gray-400 text-xs font-medium min-w-[120px] text-center">
+                {formatWeekRange(weekKey)}
+                {isCurrentWeek && <span className="ml-1.5 text-violet-400">·&nbsp;esta semana</span>}
+              </p>
+            </div>
+            <button
+              onClick={() => !isCurrentWeek && setWeekKey(getNextWeekKey(weekKey))}
+              disabled={isCurrentWeek}
+              className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90 disabled:opacity-25 disabled:pointer-events-none"
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
       </div>

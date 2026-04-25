@@ -8,6 +8,7 @@ import { toggleCompletion } from '@/lib/firebase/completions';
 import { cn } from '@/lib/utils/cn';
 import { PARTNER_COLORS } from '@/lib/utils/constants';
 import { PhotoModal } from './PhotoModal';
+import { PhotoViewer } from './PhotoViewer';
 
 interface HabitCardProps {
   habit: Habit;
@@ -20,6 +21,8 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
   const [optimisticCompleted, setOptimisticCompleted] = useState<boolean | null>(null);
   const [showPoints, setShowPoints] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [pendingPhotoUrl, setPendingPhotoUrl] = useState<string | null>(null);
+  const [viewingPhoto, setViewingPhoto] = useState(false);
 
   const isCompleted = optimisticCompleted !== null ? optimisticCompleted : !!completion;
   const color = PARTNER_COLORS[habit.partnerId].primary;
@@ -28,6 +31,7 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
   useEffect(() => {
     if (optimisticCompleted === true && completion !== null) {
       setOptimisticCompleted(null);
+      setPendingPhotoUrl(null); // real photo now in completion prop
     } else if (optimisticCompleted === false && completion === null) {
       setOptimisticCompleted(null);
     }
@@ -57,6 +61,7 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
 
   async function handlePhotoConfirm(photoUrl: string) {
     setShowPhotoModal(false);
+    setPendingPhotoUrl(photoUrl);
     setOptimisticCompleted(true);
     setShowPoints(true);
     setTimeout(() => setShowPoints(false), 1500);
@@ -80,18 +85,27 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
           isCompleted ? 'bg-[#1e1e2a] border-white/5' : 'bg-[#1A1A24] border-transparent'
         )}
       >
-        {/* Emoji icon or photo thumbnail */}
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden transition-colors duration-200"
-          style={{ backgroundColor: isCompleted ? color + '22' : 'rgba(255,255,255,0.05)' }}
-        >
-          {isCompleted && completion?.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={completion.photoUrl} alt="" className="w-full h-full object-cover" />
+        {/* Emoji icon or photo thumbnail (tap to enlarge) */}
+        {(() => {
+          const displayPhotoUrl = completion?.photoUrl ?? pendingPhotoUrl ?? null;
+          return isCompleted && displayPhotoUrl ? (
+            <button
+              onClick={() => setViewingPhoto(true)}
+              className="w-10 h-10 rounded-xl flex-shrink-0 overflow-hidden active:scale-95 transition-transform"
+              style={{ border: `1.5px solid ${color}55` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={displayPhotoUrl} alt="" className="w-full h-full object-cover" />
+            </button>
           ) : (
-            habit.icon
-          )}
-        </div>
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden transition-colors duration-200"
+              style={{ backgroundColor: isCompleted ? color + '22' : 'rgba(255,255,255,0.05)' }}
+            >
+              {habit.icon}
+            </div>
+          );
+        })()}
 
         {/* Name + frequency */}
         <div className="flex-1 min-w-0">
@@ -167,6 +181,13 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
           color={color}
           onConfirm={handlePhotoConfirm}
           onCancel={() => setShowPhotoModal(false)}
+        />
+      )}
+
+      {viewingPhoto && (completion?.photoUrl ?? pendingPhotoUrl) && (
+        <PhotoViewer
+          url={(completion?.photoUrl ?? pendingPhotoUrl)!}
+          onClose={() => setViewingPhoto(false)}
         />
       )}
     </>
