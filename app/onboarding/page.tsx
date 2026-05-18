@@ -52,7 +52,6 @@ export default function OnboardingPage() {
         name: name.trim(),
         avatarEmoji: id === 'partner1' ? '🧑' : '👩',
         avatarColor: color,
-        notificationTime: '20:00',
         notificationsEnabled: false,
       });
       await createAppConfig(make(p1Name, p1Color, 'partner1'), make(p2Name, p2Color, 'partner2'));
