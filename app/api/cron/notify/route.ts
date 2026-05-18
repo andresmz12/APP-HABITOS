@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { Resend } from 'resend';
+import sgMail from '@sendgrid/mail';
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret');
@@ -32,12 +32,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: false, reason: 'No emails configured' });
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
     await Promise.all(
       emails.map((to) =>
-        resend.emails.send({
-          from: 'Hábitos en Pareja <onboarding@resend.dev>',
+        sgMail.send({
+          from: 'Hábitos en Pareja <notificaciones@tudominio.com>',
           to,
           subject: '🌟 ¡Recuerda tus hábitos de hoy!',
           html: `
