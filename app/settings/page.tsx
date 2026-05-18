@@ -24,6 +24,8 @@ export default function SettingsPage() {
   const [emailSaving, setEmailSaving] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
   const [newTime, setNewTime] = useState('');
   const [timesSaving, setTimesSaving] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testSending, setTestSending] = useState(false);
   const router = useRouter();
 
   if (!appConfig) {
@@ -257,6 +259,43 @@ export default function SettingsPage() {
                 </div>
               )}
               <p className="text-gray-600 text-xs">Los horarios son en hora colombiana (UTC-5). Configura cron-job.org para ejecutar cada 15 min.</p>
+            </div>
+
+            {/* Test email button */}
+            <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-white/5">
+              <div className="flex items-center gap-2">
+                <Mail size={14} className="text-violet-400" />
+                <p className="text-gray-200 text-sm font-semibold">Correo de prueba</p>
+              </div>
+              <p className="text-gray-500 text-xs">Envía un correo ahora a los emails configurados para verificar que todo funciona.</p>
+              <button
+                disabled={testSending}
+                onClick={async () => {
+                  setTestSending(true);
+                  setTestResult(null);
+                  try {
+                    const res = await fetch('/api/cron/notify/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                    const data = await res.json();
+                    if (data.sent) {
+                      setTestResult({ ok: true, message: `✓ Enviado a: ${data.to?.join(', ')}` });
+                    } else {
+                      setTestResult({ ok: false, message: data.detail || data.error || JSON.stringify(data) });
+                    }
+                  } catch (e) {
+                    setTestResult({ ok: false, message: String(e) });
+                  } finally {
+                    setTestSending(false);
+                  }
+                }}
+                className="w-full py-2.5 rounded-xl font-semibold text-sm text-white bg-violet-600 disabled:opacity-50 transition-opacity"
+              >
+                {testSending ? 'Enviando...' : 'Enviar correo de prueba'}
+              </button>
+              {testResult && (
+                <div className={`rounded-xl px-4 py-3 text-sm font-medium ${testResult.ok ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                  {testResult.message}
+                </div>
+              )}
             </div>
           </div>
         </div>
