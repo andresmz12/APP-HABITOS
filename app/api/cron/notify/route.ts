@@ -14,12 +14,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: false, reason: 'No config found' });
     }
 
-    // Check if current Colombia time (UTC-5, no DST) matches any configured notification time
+    // Check if current Colombia time (UTC-5, no DST) matches any configured notification time (±1 min window)
     const now = new Date();
     const colombiaNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const currentMinutes = colombiaNow.getUTCHours() * 60 + colombiaNow.getUTCMinutes();
+    const times = config.notificationTimes.split(',').map((t) => t.trim()).filter(Boolean);
+    const matched = times.some((t) => {
+      const [h, m] = t.split(':').map(Number);
+      return Math.abs(h * 60 + m - currentMinutes) <= 1;
+    });
     const currentTime = `${String(colombiaNow.getUTCHours()).padStart(2, '0')}:${String(colombiaNow.getUTCMinutes()).padStart(2, '0')}`;
-    const times = config.notificationTimes.split(',').map((t) => t.trim());
-    if (!times.includes(currentTime)) {
+    if (!matched) {
       return NextResponse.json({ sent: false, reason: 'Not a notification time', currentTime, times });
     }
 
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
     await Promise.all(
       emails.map((to) =>
         sgMail.send({
-          from: 'Hábitos en Pareja <notificaciones@tudominio.com>',
+          from: process.env.SENDGRID_FROM_EMAIL!,
           to,
           subject: '🌟 ¡Recuerda tus hábitos de hoy!',
           html: `
