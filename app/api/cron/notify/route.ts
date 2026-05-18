@@ -73,8 +73,9 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ sent: true, to: emails, at: currentTime });
-  } catch (err) {
+  } catch (err: unknown) {
+    const detail = err instanceof Error ? err.message : JSON.stringify(err);
     console.error('Notify error:', err);
-    return NextResponse.json({ error: 'Failed to send' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to send', detail }, { status: 500 });
   }
 }
