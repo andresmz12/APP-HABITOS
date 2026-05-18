@@ -43,7 +43,7 @@ export async function sendScheduledNotification(): Promise<{ sent: boolean; reas
         subject: '🌟 ¡Recuerda tus hábitos de hoy!',
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0F0F14; color: #fff; border-radius: 16px;">
-            <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px;">💑 Hábitos en Pareja</h1>
+            <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px;">${config.partner1AvatarEmoji}${config.partner2AvatarEmoji} Hábitos en Pareja</h1>
             <p style="color: #9ca3af; margin: 0 0 24px;">¡Hola! Es hora de revisar los hábitos del día.</p>
             <div style="background: #1A1A24; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 16px; color: #e5e7eb;">
