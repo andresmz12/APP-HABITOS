@@ -43,7 +43,6 @@ export default function SettingsPage() {
         name: partner.name,
         avatarEmoji: partner.avatarEmoji,
         avatarColor: partner.avatarColor,
-        notificationTime: partner.notificationTime,
         notificationsEnabled: partner.notificationsEnabled,
       });
       setAppConfig({ ...appConfig, [partner.id]: partner });
@@ -111,9 +110,7 @@ export default function SettingsPage() {
                     {partner.notificationsEnabled ? (
                       <>
                         <Bell size={11} style={{ color: partner.avatarColor }} />
-                        <span className="text-xs font-medium" style={{ color: partner.avatarColor }}>
-                          {partner.notificationTime}
-                        </span>
+                        <span className="text-xs font-medium" style={{ color: partner.avatarColor }}>Notificaciones on</span>
                       </>
                     ) : (
                       <>
@@ -399,19 +396,6 @@ function PartnerEditModal({
               />
             ))}
           </div>
-        </div>
-
-        {/* Notification time */}
-        <div>
-          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
-            Hora de recordatorio
-          </label>
-          <input
-            type="time"
-            value={partner.notificationTime}
-            onChange={(e) => onChange({ ...partner, notificationTime: e.target.value })}
-            className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
-          />
         </div>
 
         {/* Notifications toggle */}

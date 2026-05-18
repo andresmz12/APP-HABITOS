@@ -14,7 +14,6 @@ function dbToConfig(row: Awaited<ReturnType<typeof prisma.appConfig.findUnique>>
       name: row.partner1Name,
       avatarColor: row.partner1AvatarColor,
       avatarEmoji: row.partner1AvatarEmoji,
-      notificationTime: row.partner1NotificationTime,
       notificationsEnabled: row.partner1NotificationsEnabled,
     },
     partner2: {
@@ -22,7 +21,6 @@ function dbToConfig(row: Awaited<ReturnType<typeof prisma.appConfig.findUnique>>
       name: row.partner2Name,
       avatarColor: row.partner2AvatarColor,
       avatarEmoji: row.partner2AvatarEmoji,
-      notificationTime: row.partner2NotificationTime,
       notificationsEnabled: row.partner2NotificationsEnabled,
     },
     partner1NotificationEmail: row.partner1NotificationEmail ?? undefined,
@@ -50,12 +48,10 @@ export async function POST(req: NextRequest) {
       partner1Name: partner1.name,
       partner1AvatarColor: partner1.avatarColor,
       partner1AvatarEmoji: partner1.avatarEmoji,
-      partner1NotificationTime: partner1.notificationTime ?? '20:00',
       partner1NotificationsEnabled: partner1.notificationsEnabled ?? false,
       partner2Name: partner2.name,
       partner2AvatarColor: partner2.avatarColor,
       partner2AvatarEmoji: partner2.avatarEmoji,
-      partner2NotificationTime: partner2.notificationTime ?? '20:00',
       partner2NotificationsEnabled: partner2.notificationsEnabled ?? false,
     };
     // upsert so re-running onboarding never fails with a unique constraint error
@@ -85,7 +81,6 @@ export async function PATCH(req: NextRequest) {
       if (p.name !== undefined) data.partner1Name = p.name;
       if (p.avatarColor !== undefined) data.partner1AvatarColor = p.avatarColor;
       if (p.avatarEmoji !== undefined) data.partner1AvatarEmoji = p.avatarEmoji;
-      if (p.notificationTime !== undefined) data.partner1NotificationTime = p.notificationTime;
       if (p.notificationsEnabled !== undefined) data.partner1NotificationsEnabled = p.notificationsEnabled;
     }
 
@@ -94,7 +89,6 @@ export async function PATCH(req: NextRequest) {
       if (p.name !== undefined) data.partner2Name = p.name;
       if (p.avatarColor !== undefined) data.partner2AvatarColor = p.avatarColor;
       if (p.avatarEmoji !== undefined) data.partner2AvatarEmoji = p.avatarEmoji;
-      if (p.notificationTime !== undefined) data.partner2NotificationTime = p.notificationTime;
       if (p.notificationsEnabled !== undefined) data.partner2NotificationsEnabled = p.notificationsEnabled;
     }
 

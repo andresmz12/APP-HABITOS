@@ -5,7 +5,6 @@ export interface Partner {
   name: string;
   avatarColor: string;
   avatarEmoji: string;
-  notificationTime: string; // "HH:mm"
   notificationsEnabled: boolean;
   fcmToken?: string;
 }

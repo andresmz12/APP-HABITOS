@@ -15,12 +15,10 @@ model AppConfig {
   partner1Name                 String    @default("")
   partner1AvatarColor          String    @default("#6C63FF")
   partner1AvatarEmoji          String    @default("🧑")
-  partner1NotificationTime     String    @default("20:00")
   partner1NotificationsEnabled Boolean   @default(false)
   partner2Name                 String    @default("")
   partner2AvatarColor          String    @default("#FF6B9D")
   partner2AvatarEmoji          String    @default("👩")
-  partner2NotificationTime     String    @default("20:00")
   partner2NotificationsEnabled Boolean   @default(false)
   partner1NotificationEmail    String?
   partner2NotificationEmail    String?
