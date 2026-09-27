@@ -8,11 +8,10 @@ import { Partner } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
-import { AVATAR_COLORS, HABIT_EMOJIS } from '@/lib/utils/constants';
+import { AVATAR_COLORS } from '@/lib/utils/constants';
 import { Bell, BellOff, Pencil, Mail, Plus, X } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
-
-const STEP_EMOJIS = ['🧑', '👩', '🧑‍🤝‍🧑', '🐱', '🐶', '🦊', '🐼', '🦁', '🐙', '🌟'];
 
 export default function SettingsPage() {
   const { appConfig, setAppConfig } = useAppStore();
@@ -92,16 +91,7 @@ export default function SettingsPage() {
                   background: `linear-gradient(135deg, ${partner.avatarColor}30 0%, ${partner.avatarColor}10 100%)`,
                 }}
               >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-3xl flex-shrink-0"
-                  style={{
-                    backgroundColor: partner.avatarColor + '22',
-                    border: `2px solid ${partner.avatarColor}`,
-                    boxShadow: `0 0 16px ${partner.avatarColor}44`,
-                  }}
-                >
-                  {partner.avatarEmoji}
-                </div>
+                <Avatar color={partner.avatarColor} name={partner.name} size="lg" />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-black text-lg leading-tight truncate">
                     {partner.name}
@@ -317,23 +307,12 @@ function PartnerEditModal({
   saveError: string;
   onClose: () => void;
 }) {
-  const EMOJIS = [...STEP_EMOJIS, ...HABIT_EMOJIS.slice(0, 10)];
-
   return (
     <Modal open title={`Editar perfil`} onClose={onClose}>
       <div className="space-y-5">
         {/* Live preview */}
         <div className="flex justify-center">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center text-4xl border-4 transition-all duration-200"
-            style={{
-              backgroundColor: partner.avatarColor + '22',
-              borderColor: partner.avatarColor,
-              boxShadow: `0 0 24px ${partner.avatarColor}55`,
-            }}
-          >
-            {partner.avatarEmoji}
-          </div>
+          <Avatar color={partner.avatarColor} name={partner.name || '?'} size="xl" />
         </div>
 
         {/* Name */}
@@ -348,35 +327,6 @@ function PartnerEditModal({
             maxLength={20}
             className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
           />
-        </div>
-
-        {/* Emoji */}
-        <div>
-          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
-            Avatar
-          </label>
-          <div className="grid grid-cols-5 gap-2 max-h-36 overflow-y-auto">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => onChange({ ...partner, avatarEmoji: e })}
-                className={cn(
-                  'h-11 rounded-xl text-xl flex items-center justify-center transition-all',
-                  partner.avatarEmoji === e
-                    ? 'scale-110 ring-2'
-                    : 'bg-[#22223A] hover:bg-[#2a2a44]'
-                )}
-                style={
-                  partner.avatarEmoji === e
-                    ? { backgroundColor: partner.avatarColor + '30', outlineColor: partner.avatarColor }
-                    : {}
-                }
-              >
-                {e}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Color */}

@@ -33,6 +33,17 @@ export interface Habit {
   frequencyDays: number; // 7 for daily, 1-6 for custom
   isArchived: boolean;
   sortOrder: number;
+  reminderEnabled: boolean;
+  reminderTime?: string; // "HH:mm"
+  createdAt: Date | string;
+}
+
+export interface WeeklyTask {
+  id: string;
+  partnerId: PartnerId;
+  weekKey: string;
+  dateKey: string; // "2025-04-13"
+  text: string;
   createdAt: Date | string;
 }
 

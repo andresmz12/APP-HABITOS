@@ -2,7 +2,8 @@
 
 import { Partner } from '@/lib/types/models';
 import { ProgressRing } from '@/components/ui/ProgressRing';
-import { Trophy, Zap } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
+import { Zap } from 'lucide-react';
 
 interface PartnerHeaderProps {
   partner: Partner;
@@ -36,8 +37,8 @@ export function PartnerHeader({
           strokeWidth={5}
           color={partner.avatarColor}
         />
-        <div className="absolute inset-0 flex items-center justify-center text-2xl">
-          {partner.avatarEmoji}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Avatar color={partner.avatarColor} name={partner.name} size="md" />
         </div>
         {allDone && (
           <div

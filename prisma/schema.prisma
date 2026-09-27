@@ -30,16 +30,18 @@ model AppConfig {
 }
 
 model Habit {
-  id            String            @id @default(cuid())
-  partnerId     String
-  name          String
-  icon          String            @default("🏃")
-  frequencyType String            @default("daily")
-  frequencyDays Int               @default(7)
-  isArchived    Boolean           @default(false)
-  sortOrder     Int               @default(0)
-  createdAt     DateTime          @default(now())
-  completions   HabitCompletion[]
+  id              String            @id @default(cuid())
+  partnerId       String
+  name            String
+  icon            String            @default("🏃")
+  frequencyType   String            @default("daily")
+  frequencyDays   Int               @default(7)
+  isArchived      Boolean           @default(false)
+  sortOrder       Int               @default(0)
+  reminderEnabled Boolean           @default(false)
+  reminderTime    String?
+  createdAt       DateTime          @default(now())
+  completions     HabitCompletion[]
 }
 
 model HabitCompletion {
@@ -52,6 +54,15 @@ model HabitCompletion {
   pointsEarned Int      @default(1)
   photoUrl     String?
   habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+}
+
+model WeeklyTask {
+  id        String   @id @default(cuid())
+  partnerId String
+  weekKey   String
+  dateKey   String
+  text      String
+  createdAt DateTime @default(now())
 }
 
 model WeeklyStat {

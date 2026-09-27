@@ -5,9 +5,11 @@ import { useAppStore } from '@/lib/stores/appStore';
 import { useHabits } from '@/lib/hooks/useHabits';
 import { useTodayCompletions, useWeekCompletions } from '@/lib/hooks/useCompletions';
 import { useWeeklyStats } from '@/lib/hooks/useWeeklyStats';
+import { useWeeklyTasks } from '@/lib/hooks/useWeeklyTasks';
 import { getCurrentWeekKey, formatWeekRange, getPrevWeekKey, getNextWeekKey } from '@/lib/utils/dates';
 import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
 import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
+import { SharedWeekPlanner } from '@/components/dashboard/SharedWeekPlanner';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
 import { Calendar, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -25,6 +27,7 @@ export default function TogetherPage() {
   const { completions: p2Today } = useTodayCompletions('partner2');
   const { completions: p1Week } = useWeekCompletions('partner1', weekKey);
   const { completions: p2Week } = useWeekCompletions('partner2', weekKey);
+  const { tasks } = useWeeklyTasks(weekKey);
 
   if (!appConfig) {
     return (
@@ -49,9 +52,9 @@ export default function TogetherPage() {
       >
         {/* Both partners with heart */}
         <div className="flex items-center justify-center gap-3 mb-4">
-          <Avatar emoji={p1.avatarEmoji} color={p1.avatarColor} name={p1.name} size="md" />
+          <Avatar color={p1.avatarColor} name={p1.name} size="md" />
           <Heart size={16} className="text-pink-400" fill="currentColor" />
-          <Avatar emoji={p2.avatarEmoji} color={p2.avatarColor} name={p2.name} size="md" />
+          <Avatar color={p2.avatarColor} name={p2.name} size="md" />
         </div>
 
         <div className="text-center">
@@ -110,12 +113,7 @@ export default function TogetherPage() {
           ].map(({ partner, habits, completions }) => (
             <div key={partner.id} className="space-y-2">
               <div className="flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-sm"
-                  style={{ backgroundColor: partner.avatarColor + '25', border: `1px solid ${partner.avatarColor}50` }}
-                >
-                  {partner.avatarEmoji}
-                </div>
+                <Avatar color={partner.avatarColor} name={partner.name} size="sm" />
                 <span className="text-sm text-gray-300 font-semibold">{partner.name}</span>
                 <span className="text-xs text-gray-600 ml-auto">
                   {completions.length} completaciones
@@ -129,6 +127,19 @@ export default function TogetherPage() {
               />
             </div>
           ))}
+        </Card>
+
+        {/* Shared weekly plan */}
+        <Card className="space-y-3">
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Plan de la semana
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">
+              Anoten juntos lo que cada uno debe hacer cada día
+            </p>
+          </div>
+          <SharedWeekPlanner weekKey={weekKey} tasks={tasks} appConfig={appConfig} />
         </Card>
       </div>
 

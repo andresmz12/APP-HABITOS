@@ -7,6 +7,7 @@ import { ensureWeeklyStat } from '@/lib/firebase/weeklyStats';
 import { getCurrentWeekKey } from '@/lib/utils/dates';
 import { Partner, PartnerId } from '@/lib/types/models';
 import { AVATAR_COLORS } from '@/lib/utils/constants';
+import { Logo } from '@/components/ui/Logo';
 
 const COLORS = AVATAR_COLORS;
 
@@ -50,7 +51,7 @@ export default function OnboardingPage() {
       const make = (name: string, color: string, id: PartnerId): Partner => ({
         id,
         name: name.trim(),
-        avatarEmoji: id === 'partner1' ? '🧑' : '👩',
+        avatarEmoji: '',
         avatarColor: color,
         notificationTime: '20:00',
         notificationsEnabled: false,
@@ -69,8 +70,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center px-5 py-10 gap-8">
 
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="text-6xl">💑</div>
+      <div className="text-center space-y-2 flex flex-col items-center">
+        <Logo size="lg" />
         <h1 className="text-3xl font-black text-white tracking-tight mt-3">Hábitos en Pareja</h1>
         <p className="text-gray-500 text-sm">Construyan rutinas juntos, compitan con amor</p>
       </div>

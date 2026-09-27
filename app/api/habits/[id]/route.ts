@@ -21,7 +21,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await prisma.habit.update({ where: { id }, data: { isArchived: true } });
+    await prisma.habit.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: 'Failed to delete habit' }, { status: 500 });

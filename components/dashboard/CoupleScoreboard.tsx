@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { AppConfig, WeeklyStat } from '@/lib/types/models';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface CoupleScoreboardProps {
   appConfig: AppConfig;
@@ -95,8 +96,8 @@ export function CoupleScoreboard({
             {/* Avatar inside ring */}
             <div className="relative">
               <ProgressRing percentage={pct} size={72} strokeWidth={5} color={partner.avatarColor} />
-              <div className="absolute inset-0 flex items-center justify-center text-2xl">
-                {partner.avatarEmoji}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Avatar color={partner.avatarColor} name={partner.name} size="md" />
               </div>
             </div>
 
@@ -134,7 +135,7 @@ export function CoupleScoreboard({
           <div key={partner.id} className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm">{partner.avatarEmoji}</span>
+                <Avatar color={partner.avatarColor} name={partner.name} size="sm" />
                 <span className="text-sm text-gray-300 font-medium">{partner.name}</span>
               </div>
               <span className="text-sm font-black tabular-nums" style={{ color: partner.avatarColor }}>

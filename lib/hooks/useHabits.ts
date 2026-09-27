@@ -8,13 +8,15 @@ export function useHabits(partnerId: PartnerId) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [weeklyLimitReached, setWeeklyLimitReached] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = subscribeToHabits(
       partnerId,
-      (data) => {
+      (data, limitReached) => {
         setHabits(data);
+        setWeeklyLimitReached(limitReached);
         setLoading(false);
       },
       (err) => {
@@ -25,5 +27,5 @@ export function useHabits(partnerId: PartnerId) {
     return unsubscribe;
   }, [partnerId]);
 
-  return { habits, loading, error };
+  return { habits, loading, error, weeklyLimitReached };
 }

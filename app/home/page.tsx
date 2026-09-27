@@ -21,7 +21,7 @@ export default function HomePage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editHabit, setEditHabit] = useState<Habit | null>(null);
 
-  const { habits, loading: habitsLoading } = useHabits(activePartnerId);
+  const { habits, loading: habitsLoading, weeklyLimitReached } = useHabits(activePartnerId);
   const { completions } = useTodayCompletions(activePartnerId);
   const { stat } = useWeeklyStats(getCurrentWeekKey());
 
@@ -127,6 +127,7 @@ export default function HomePage() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         partnerId={activePartnerId}
+        weeklyLimitReached={weeklyLimitReached}
       />
 
       {/* Edit habit modal — key forces remount when editing a different habit */}
@@ -136,6 +137,7 @@ export default function HomePage() {
         onClose={() => setEditHabit(null)}
         partnerId={activePartnerId}
         editHabit={editHabit ?? undefined}
+        weeklyLimitReached={weeklyLimitReached}
       />
 
       <BottomNav />

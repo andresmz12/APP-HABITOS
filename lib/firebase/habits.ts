@@ -2,13 +2,14 @@ import { Habit, PartnerId } from '../types/models';
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `API error: ${res.status}`);
+  return body;
 }
 
 export function subscribeToHabits(
   partnerId: PartnerId,
-  callback: (habits: Habit[]) => void,
+  callback: (habits: Habit[], weeklyLimitReached: boolean) => void,
   onError?: (err: Error) => void
 ): () => void {
   let active = true;
@@ -16,8 +17,8 @@ export function subscribeToHabits(
   async function poll() {
     if (!active) return;
     try {
-      const { habits } = await apiFetch(`/api/habits?partnerId=${partnerId}`);
-      if (active) callback(habits ?? []);
+      const { habits, weeklyLimitReached } = await apiFetch(`/api/habits?partnerId=${partnerId}`);
+      if (active) callback(habits ?? [], !!weeklyLimitReached);
     } catch (err) {
       if (active) onError?.(err as Error);
     }
@@ -42,7 +43,7 @@ export async function createHabit(
 
 export async function updateHabit(
   habitId: string,
-  data: Partial<Pick<Habit, 'name' | 'icon' | 'frequencyType' | 'frequencyDays'>>
+  data: Partial<Pick<Habit, 'name' | 'icon' | 'frequencyType' | 'frequencyDays' | 'reminderEnabled' | 'reminderTime'>>
 ): Promise<void> {
   await apiFetch(`/api/habits/${habitId}`, {
     method: 'PATCH',
@@ -53,4 +54,9 @@ export async function updateHabit(
 
 export async function deleteHabit(habitId: string): Promise<void> {
   await apiFetch(`/api/habits/${habitId}`, { method: 'DELETE' });
+}
+
+export async function duplicateHabit(habitId: string): Promise<string> {
+  const { habit } = await apiFetch(`/api/habits/${habitId}/duplicate`, { method: 'POST' });
+  return habit.id;
 }
