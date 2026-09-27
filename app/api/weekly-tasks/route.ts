@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         userId: { in: userIds },
         ...(month ? { dateKey: { startsWith: month } } : { weekKey: weekKey! }),
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ dateKey: 'asc' }, { time: 'asc' }, { createdAt: 'asc' }],
       include: { user: { select: { id: true, name: true, avatarColor: true } } },
     });
     return NextResponse.json({ tasks });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   try {
-    const { dateKey, text } = await req.json();
+    const { dateKey, time, text } = await req.json();
     if (!text?.trim()) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
     const weekKey = getWeekKey(new Date(dateKey + 'T00:00:00Z'));
     const task = await prisma.weeklyTask.create({
-      data: { userId: user.id, weekKey, dateKey, text: text.trim() },
+      data: { userId: user.id, weekKey, dateKey, time: time || null, text: text.trim() },
       include: { user: { select: { id: true, name: true, avatarColor: true } } },
     });
     return NextResponse.json({ task });

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Sparkles } from 'lucide-react';
 import { useSession } from '@/lib/hooks/useSession';
 import { useHabits } from '@/lib/hooks/useHabits';
 import { useTodayCompletions } from '@/lib/hooks/useCompletions';
@@ -14,9 +15,17 @@ import { Card } from '@/components/ui/Card';
 import { Habit } from '@/lib/types/models';
 import { BottomNav } from '@/components/ui/BottomNav';
 
+function greeting(): string {
+  const hour = new Date().getUTCHours() - 5; // Colombia UTC-5
+  const h = ((hour % 24) + 24) % 24;
+  if (h < 12) return 'Buenos días';
+  if (h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
 export default function HomePage() {
   const router = useRouter();
-  const { user, partner, loading: sessionLoading } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const [addOpen, setAddOpen] = useState(false);
   const [editHabit, setEditHabit] = useState<Habit | null>(null);
 
@@ -38,99 +47,128 @@ export default function HomePage() {
   const accentColor = user.avatarColor;
 
   return (
-    <div className="min-h-screen bg-[#0F0F14] pb-24">
-      {/* Header */}
-      <div
-        className="px-4 pt-12 pb-5"
-        style={{
-          background: `radial-gradient(ellipse 100% 180px at 50% 0%, ${accentColor}1a 0%, transparent 100%)`,
-        }}
-      >
-        <div className="mb-4">
-          <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest">
-            Hábitos de
-          </p>
-          <h1 className="text-white text-2xl font-black mt-0.5 leading-none">
-            {user.name}
-          </h1>
-        </div>
-
-        {/* Stats card */}
-        <PartnerHeader
-          user={user}
-          completedToday={completions.length}
-          totalHabits={habits.length}
-          weeklyPoints={weeklyPoints}
-          streak={streak}
-        />
-      </div>
-
-      {/* Habits section */}
-      <div className="px-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            Hábitos de hoy
-          </h2>
-          <div className="flex items-center gap-2.5">
-            {habits.length > 0 && (
-              <span className="text-xs text-gray-600 tabular-nums">
-                {completions.length}/{habits.length}
-              </span>
-            )}
-            <button
-              onClick={() => setAddOpen(true)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-              style={{ backgroundColor: accentColor + '25', color: accentColor }}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
-
-        <HabitList
-          habits={habits}
-          completions={completions}
-          onEdit={(h) => setEditHabit(h)}
-          loading={habitsLoading}
-          partnerColor={accentColor}
-        />
-      </div>
-
-      {/* Shared plan calendar */}
-      <div className="px-4 mt-4">
-        <Card className="space-y-3">
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Plan del mes
+    <div className="min-h-screen bg-[#0B0B10] pb-28">
+      <div className="max-w-lg mx-auto">
+        {/* Header */}
+        <div
+          className="px-5 pt-14 pb-6"
+          style={{
+            background: `radial-gradient(ellipse 120% 220px at 50% -10%, ${accentColor}22 0%, transparent 70%)`,
+          }}
+        >
+          <div className="mb-5">
+            <p className="text-gray-500 text-[11px] font-semibold uppercase tracking-[0.15em]">
+              {greeting()}
             </p>
-            <p className="text-gray-600 text-xs mt-0.5">
-              {partner ? 'Anoten lo que cada uno debe hacer cada día' : 'Anota lo que debes hacer cada día'}
-            </p>
+            <h1 className="text-white text-[28px] font-black mt-0.5 leading-none tracking-tight">
+              {user.name}
+            </h1>
           </div>
-          <SharedCalendarPlanner
-            participants={[
-              { id: user.id, name: user.name, avatarColor: user.avatarColor },
-              ...(partner ? [{ id: partner.id, name: partner.name, avatarColor: partner.avatarColor }] : []),
-            ]}
+
+          {/* Stats card */}
+          <PartnerHeader
+            user={user}
+            completedToday={completions.length}
+            totalHabits={habits.length}
+            weeklyPoints={weeklyPoints}
+            streak={streak}
           />
-        </Card>
+        </div>
+
+        {/* Habits section */}
+        <div className="px-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">
+              Hábitos de hoy
+            </h2>
+            <div className="flex items-center gap-2.5">
+              {habits.length > 0 && (
+                <span className="text-xs text-gray-600 tabular-nums font-medium">
+                  {completions.length}/{habits.length}
+                </span>
+              )}
+              <button
+                onClick={() => setAddOpen(true)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+                style={{ backgroundColor: accentColor + '25', color: accentColor }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+
+          {!habitsLoading && habits.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl p-8 flex flex-col items-center text-center gap-4"
+              style={{
+                background: `linear-gradient(160deg, ${accentColor}14 0%, #14141c 70%)`,
+                border: `1px solid ${accentColor}25`,
+              }}
+            >
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}99)`, boxShadow: `0 8px 24px ${accentColor}40` }}
+              >
+                <Sparkles size={28} color="white" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-base">Crea tu primer hábito</p>
+                <p className="text-gray-500 text-sm mt-1 max-w-[240px] mx-auto leading-relaxed">
+                  Rutinas pequeñas, constantes cada día. Empieza con una.
+                </p>
+              </div>
+              <button
+                onClick={() => setAddOpen(true)}
+                className="px-6 py-3 rounded-2xl font-bold text-white text-sm active:scale-95 transition-transform"
+                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}bb)`, boxShadow: `0 8px 20px ${accentColor}45` }}
+              >
+                + Nuevo hábito
+              </button>
+            </motion.div>
+          ) : (
+            <HabitList
+              habits={habits}
+              completions={completions}
+              onEdit={(h) => setEditHabit(h)}
+              loading={habitsLoading}
+              partnerColor={accentColor}
+            />
+          )}
+        </div>
+
+        {/* Personal plan calendar */}
+        <div className="px-5 mt-5">
+          <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
+            <div>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">
+                Mi calendario
+              </p>
+              <p className="text-gray-600 text-xs mt-0.5">
+                Anota lo que debes hacer cada día
+              </p>
+            </div>
+            <SharedCalendarPlanner viewerId={user.id} mode="personal" />
+          </Card>
+        </div>
+
+        {/* Add habit modal */}
+        <HabitForm
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          weeklyLimitReached={weeklyLimitReached}
+        />
+
+        {/* Edit habit modal — key forces remount when editing a different habit */}
+        <HabitForm
+          key={editHabit?.id ?? 'edit'}
+          open={!!editHabit}
+          onClose={() => setEditHabit(null)}
+          editHabit={editHabit ?? undefined}
+          weeklyLimitReached={weeklyLimitReached}
+        />
       </div>
-
-      {/* Add habit modal */}
-      <HabitForm
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        weeklyLimitReached={weeklyLimitReached}
-      />
-
-      {/* Edit habit modal — key forces remount when editing a different habit */}
-      <HabitForm
-        key={editHabit?.id ?? 'edit'}
-        open={!!editHabit}
-        onClose={() => setEditHabit(null)}
-        editHabit={editHabit ?? undefined}
-        weeklyLimitReached={weeklyLimitReached}
-      />
 
       <BottomNav />
     </div>

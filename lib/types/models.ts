@@ -41,6 +41,7 @@ export interface WeeklyTask {
   userId: string;
   weekKey: string;
   dateKey: string;
+  time?: string | null; // "HH:mm"
   text: string;
   createdAt: Date | string;
   user?: { id: string; name: string; avatarColor: string };

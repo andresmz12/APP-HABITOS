@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, CalendarDays } from 'lucide-react';
 import { WeeklyTask } from '@/lib/types/models';
 import {
   getMonthGridDays,
@@ -19,6 +19,9 @@ import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const WEEKDAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const WEEKDAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 interface Participant {
   id: string;
@@ -27,16 +30,31 @@ interface Participant {
 }
 
 interface SharedCalendarPlannerProps {
+  /** The signed-in user's id — used to tell "mine" apart from "theirs" */
+  viewerId: string;
+  /** 'personal' hides everyone else's items entirely; 'couple' shows both with a filter */
+  mode?: 'personal' | 'couple';
   participants?: Participant[];
 }
 
-export function SharedCalendarPlanner({ participants }: SharedCalendarPlannerProps) {
+export function SharedCalendarPlanner({ viewerId, mode = 'personal', participants }: SharedCalendarPlannerProps) {
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey());
-  const { tasks } = useMonthTasks(monthKey);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const { tasks: allTasks } = useMonthTasks(monthKey);
+  const todayKey = getCurrentDayKey();
+  const [selectedDay, setSelectedDay] = useState(todayKey);
+  const [addOpen, setAddOpen] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'mine' | 'partner'>('all');
+
+  const partner = participants?.find((p) => p.id !== viewerId);
+
+  const tasks = useMemo(() => {
+    if (mode === 'personal') return allTasks.filter((t) => t.userId === viewerId);
+    if (filter === 'mine') return allTasks.filter((t) => t.userId === viewerId);
+    if (filter === 'partner') return allTasks.filter((t) => t.userId !== viewerId);
+    return allTasks;
+  }, [allTasks, mode, filter, viewerId]);
 
   const days = useMemo(() => getMonthGridDays(monthKey), [monthKey]);
-  const todayKey = getCurrentDayKey();
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, WeeklyTask[]>();
@@ -48,18 +66,30 @@ export function SharedCalendarPlanner({ participants }: SharedCalendarPlannerPro
     return map;
   }, [tasks]);
 
+  const agendaDays = useMemo(() => Array.from(tasksByDay.keys()).sort(), [tasksByDay]);
   const currentMonthNum = Number(monthKey.split('-')[1]);
+  const selectedDate = new Date(selectedDay + 'T00:00:00Z');
 
   return (
-    <div className="space-y-3">
-      {/* Legend: whose color is whose */}
-      {participants && participants.length > 0 && (
-        <div className="flex items-center gap-3 flex-wrap">
-          {participants.map((p) => (
-            <div key={p.id} className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.avatarColor }} />
-              <span className="text-xs text-gray-400 font-medium">{p.name}</span>
-            </div>
+    <div className="space-y-5">
+      {/* Couple filter tabs */}
+      {mode === 'couple' && participants && participants.length > 0 && (
+        <div className="flex items-center gap-1.5 bg-[#13131b] rounded-xl p-1">
+          {([
+            { key: 'all' as const, label: 'Ambos' },
+            { key: 'mine' as const, label: participants.find((p) => p.id === viewerId)?.name ?? 'Yo' },
+            ...(partner ? [{ key: 'partner' as const, label: partner.name }] : []),
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-xs font-semibold transition-all truncate px-2',
+                filter === tab.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-gray-500 hover:text-gray-300'
+              )}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
       )}
@@ -68,106 +98,192 @@ export function SharedCalendarPlanner({ participants }: SharedCalendarPlannerPro
       <div className="flex items-center justify-between">
         <button
           onClick={() => setMonthKey(getPrevMonthKey(monthKey))}
-          className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
+          className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={15} />
         </button>
-        <p className="text-sm font-bold text-white capitalize">{formatMonthLabel(monthKey)}</p>
+        <p className="text-[15px] font-bold text-white capitalize tracking-tight">{formatMonthLabel(monthKey)}</p>
         <button
           onClick={() => setMonthKey(getNextMonthKey(monthKey))}
-          className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
+          className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={15} />
         </button>
       </div>
 
-      {/* Weekday labels */}
-      <div className="grid grid-cols-7 gap-1">
-        {DAY_LABELS.map((label, i) => (
-          <div key={i} className="text-center text-[10px] font-bold text-gray-600">
-            {label}
-          </div>
-        ))}
-      </div>
+      {/* Month grid — fixed-size circular day cells, safe at any viewport width */}
+      <div className="max-w-[340px] mx-auto w-full">
+        <div className="grid grid-cols-7 mb-1">
+          {DAY_LABELS.map((label, i) => (
+            <div key={i} className="text-center text-[10px] font-bold text-gray-600 pb-2 tracking-wide">
+              {label}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-y-1.5">
+          {days.map((day) => {
+            const dateKey = getDayKey(day);
+            const inMonth = day.getUTCMonth() + 1 === currentMonthNum;
+            const isToday = dateKey === todayKey;
+            const isSelected = dateKey === selectedDay;
+            const dayTasks = tasksByDay.get(dateKey) ?? [];
 
-      {/* Month grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day) => {
-          const dateKey = getDayKey(day);
-          const inMonth = day.getUTCMonth() + 1 === currentMonthNum;
-          const isToday = dateKey === todayKey;
-          const dayTasks = tasksByDay.get(dateKey) ?? [];
-
-          return (
-            <button
-              key={dateKey}
-              onClick={() => setSelectedDay(dateKey)}
-              className={cn(
-                'aspect-square rounded-lg flex flex-col items-center justify-center gap-0.5 p-0.5 transition-colors',
-                isToday
-                  ? 'bg-violet-600/25 ring-1 ring-violet-500'
-                  : inMonth
-                  ? 'bg-[#1A1A24] hover:bg-[#22223A]'
-                  : 'bg-transparent'
-              )}
-            >
-              <span
-                className={cn(
-                  'text-[11px] font-semibold tabular-nums',
-                  !inMonth ? 'text-gray-800' : isToday ? 'text-violet-300' : 'text-gray-400'
-                )}
+            return (
+              <button
+                key={dateKey}
+                onClick={() => setSelectedDay(dateKey)}
+                className="flex flex-col items-center justify-center gap-1 py-0.5"
               >
-                {day.getUTCDate()}
-              </span>
-              {dayTasks.length > 0 && (
-                <div className="flex gap-0.5">
+                <div
+                  className={cn(
+                    'w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold tabular-nums transition-all',
+                    isSelected
+                      ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-600/30 scale-105'
+                      : isToday
+                      ? 'bg-violet-600/15 text-violet-300 ring-1 ring-inset ring-violet-500/60'
+                      : inMonth
+                      ? 'text-gray-300 hover:bg-white/[0.06]'
+                      : 'text-gray-800'
+                  )}
+                >
+                  {day.getUTCDate()}
+                </div>
+                <div className="h-1.5 flex items-center justify-center gap-0.5">
                   {dayTasks.slice(0, 3).map((t) => (
                     <span
                       key={t.id}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: t.user?.avatarColor ?? '#6C63FF' }}
+                      className="w-1 h-1 rounded-full"
+                      style={{ backgroundColor: isSelected ? '#fff' : t.user?.avatarColor ?? '#8B85FF' }}
                     />
                   ))}
                 </div>
-              )}
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {selectedDay && (
-        <DayModal
+      {/* Add button for the selected day */}
+      <button
+        onClick={() => setAddOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 border border-violet-500/30 text-violet-200 text-sm font-semibold active:scale-[0.98] transition-transform"
+      >
+        <Plus size={16} />
+        Agregar para {WEEKDAY_SHORT[selectedDate.getUTCDay()]} {selectedDate.getUTCDate()}
+      </button>
+
+      {/* Agenda list — every day this month with pending items, in order */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-3">
+          <CalendarDays size={12} className="text-gray-600" />
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Agenda del mes</p>
+        </div>
+
+        {agendaDays.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600 text-sm">Sin pendientes este mes</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {agendaDays.map((dateKey) => {
+              const dayTasks = tasksByDay.get(dateKey) ?? [];
+              const date = new Date(dateKey + 'T00:00:00Z');
+              const isToday = dateKey === todayKey;
+
+              return (
+                <div key={dateKey} className="flex gap-3">
+                  {/* Date badge */}
+                  <div className="flex flex-col items-center flex-shrink-0 w-11 pt-1">
+                    <span className={cn('text-[9px] font-bold uppercase tracking-wide', isToday ? 'text-violet-400' : 'text-gray-600')}>
+                      {WEEKDAY_SHORT[date.getUTCDay()]}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-lg font-black leading-none mt-1 w-8 h-8 flex items-center justify-center rounded-full',
+                        isToday ? 'bg-violet-600 text-white' : 'text-white'
+                      )}
+                    >
+                      {date.getUTCDate()}
+                    </span>
+                  </div>
+
+                  {/* Tasks for that day */}
+                  <div className="flex-1 min-w-0 space-y-1.5 pt-1">
+                    {dayTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="group flex items-start gap-2.5 bg-[#1A1A24] hover:bg-[#1e1e2a] rounded-2xl px-3.5 py-3 transition-colors"
+                        style={{ borderLeft: `2.5px solid ${task.user?.avatarColor ?? '#6C63FF'}` }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-100 text-sm break-words leading-snug font-medium">{task.text}</p>
+                          <div className="flex items-center gap-2.5 mt-1">
+                            {task.time && (
+                              <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+                                <Clock size={10} />
+                                {task.time}
+                              </span>
+                            )}
+                            {mode === 'couple' && task.user && (
+                              <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                                <Avatar color={task.user.avatarColor} name={task.user.name} size="sm" className="!w-4 !h-4 !text-[8px]" />
+                                {task.user.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteWeeklyTask(task.id)}
+                          className="text-gray-700 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {addOpen && (
+        <AddTaskModal
           dateKey={selectedDay}
-          tasks={tasksByDay.get(selectedDay) ?? []}
-          onClose={() => setSelectedDay(null)}
+          weekdayLabel={WEEKDAY_NAMES[selectedDate.getUTCDay()]}
+          onClose={() => setAddOpen(false)}
         />
       )}
     </div>
   );
 }
 
-function DayModal({
+function AddTaskModal({
   dateKey,
-  tasks,
+  weekdayLabel,
   onClose,
 }: {
   dateKey: string;
-  tasks: WeeklyTask[];
+  weekdayLabel: string;
   onClose: () => void;
 }) {
   const [text, setText] = useState('');
+  const [time, setTime] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function handleAdd() {
     if (!text.trim()) return;
     setSaving(true);
     try {
-      await createWeeklyTask(dateKey, text.trim());
-      setText('');
+      await createWeeklyTask(dateKey, text.trim(), time);
+      onClose();
     } finally {
       setSaving(false);
     }
   }
+
+  const [y, m, d] = dateKey.split('-');
 
   return (
     <AnimatePresence>
@@ -179,7 +295,7 @@ function DayModal({
         onClick={onClose}
       >
         <motion.div
-          className="w-full bg-[#1A1A24] rounded-t-3xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+          className="w-full max-w-lg mx-auto bg-[#1A1A24] rounded-t-3xl p-6 space-y-4"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
@@ -187,7 +303,12 @@ function DayModal({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-white font-bold text-base">{dateKey}</h2>
+            <div>
+              <h2 className="text-white font-bold text-base">Nuevo pendiente</h2>
+              <p className="text-gray-500 text-xs mt-0.5">
+                {weekdayLabel} {Number(d)} de {MONTH_SHORT[Number(m) - 1]} de {y}
+              </p>
+            </div>
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-[#22223A] flex items-center justify-center text-gray-400 hover:text-white transition-colors"
@@ -196,46 +317,39 @@ function DayModal({
             </button>
           </div>
 
-          {tasks.length === 0 ? (
-            <p className="text-gray-600 text-sm">Sin pendientes este día</p>
-          ) : (
-            <div className="space-y-1.5">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-2 bg-[#22223A]/60 rounded-lg px-2.5 py-2"
-                >
-                  {task.user && (
-                    <Avatar color={task.user.avatarColor} name={task.user.name} size="sm" />
-                  )}
-                  <span className="text-gray-200 text-sm flex-1 min-w-0 break-words">{task.text}</span>
-                  <button
-                    onClick={() => deleteWeeklyTask(task.id)}
-                    className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="¿Qué debes hacer ese día?"
+            maxLength={140}
+            autoFocus
+            className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+          />
 
-          <div className="flex gap-2 pt-1">
+          <div>
+            <label className="text-xs font-medium text-gray-400 mb-2 block">Hora (opcional)</label>
             <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="¿Qué debes hacer ese día?"
-              maxLength={140}
-              autoFocus
-              className="flex-1 bg-[#22223A] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
             />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl bg-[#22223A] text-white text-sm font-medium"
+            >
+              Cancelar
+            </button>
             <button
               onClick={handleAdd}
               disabled={!text.trim() || saving}
-              className="w-11 h-11 rounded-xl bg-violet-600 text-white flex items-center justify-center disabled:opacity-40 flex-shrink-0"
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-semibold disabled:opacity-40"
             >
-              <Plus size={18} />
+              {saving ? '...' : 'Agregar'}
             </button>
           </div>
         </motion.div>
