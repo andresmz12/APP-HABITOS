@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { useSession } from '@/lib/hooks/useSession';
 import { useHabits } from '@/lib/hooks/useHabits';
@@ -10,12 +9,14 @@ import { useTodayCompletions } from '@/lib/hooks/useCompletions';
 import { PartnerHeader } from '@/components/dashboard/PartnerHeader';
 import { HabitList } from '@/components/habits/HabitList';
 import { HabitForm } from '@/components/habits/HabitForm';
+import { SharedCalendarPlanner } from '@/components/dashboard/SharedCalendarPlanner';
+import { Card } from '@/components/ui/Card';
 import { Habit } from '@/lib/types/models';
 import { BottomNav } from '@/components/ui/BottomNav';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading: sessionLoading } = useSession();
+  const { user, partner, loading: sessionLoading } = useSession();
   const [addOpen, setAddOpen] = useState(false);
   const [editHabit, setEditHabit] = useState<Habit | null>(null);
 
@@ -70,11 +71,20 @@ export default function HomePage() {
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">
             Hábitos de hoy
           </h2>
-          {habits.length > 0 && (
-            <span className="text-xs text-gray-600 tabular-nums">
-              {completions.length}/{habits.length}
-            </span>
-          )}
+          <div className="flex items-center gap-2.5">
+            {habits.length > 0 && (
+              <span className="text-xs text-gray-600 tabular-nums">
+                {completions.length}/{habits.length}
+              </span>
+            )}
+            <button
+              onClick={() => setAddOpen(true)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+              style={{ backgroundColor: accentColor + '25', color: accentColor }}
+            >
+              <Plus size={14} strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
 
         <HabitList
@@ -86,18 +96,25 @@ export default function HomePage() {
         />
       </div>
 
-      {/* FAB */}
-      <motion.button
-        onClick={() => setAddOpen(true)}
-        whileTap={{ scale: 0.88 }}
-        className="fixed bottom-24 right-5 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl z-20"
-        style={{
-          background: `linear-gradient(135deg, ${accentColor}, ${accentColor}bb)`,
-          boxShadow: `0 8px 24px ${accentColor}55`,
-        }}
-      >
-        <Plus size={26} color="white" strokeWidth={2.5} />
-      </motion.button>
+      {/* Shared plan calendar */}
+      <div className="px-4 mt-4">
+        <Card className="space-y-3">
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Plan del mes
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">
+              {partner ? 'Anoten lo que cada uno debe hacer cada día' : 'Anota lo que debes hacer cada día'}
+            </p>
+          </div>
+          <SharedCalendarPlanner
+            participants={[
+              { id: user.id, name: user.name, avatarColor: user.avatarColor },
+              ...(partner ? [{ id: partner.id, name: partner.name, avatarColor: partner.avatarColor }] : []),
+            ]}
+          />
+        </Card>
+      </div>
 
       {/* Add habit modal */}
       <HabitForm
