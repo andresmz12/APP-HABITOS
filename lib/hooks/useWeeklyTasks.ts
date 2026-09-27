@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { WeeklyTask } from '../types/models';
-import { subscribeToWeekTasks } from '../firebase/weeklyTasks';
+import { subscribeToMonthTasks } from '../firebase/weeklyTasks';
 
-export function useWeeklyTasks(weekKey: string) {
+export function useMonthTasks(monthKey: string) {
   const [tasks, setTasks] = useState<WeeklyTask[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = subscribeToWeekTasks(weekKey, (data) => {
+    const unsubscribe = subscribeToMonthTasks(monthKey, (data) => {
       setTasks(data);
       setLoading(false);
     });
     return unsubscribe;
-  }, [weekKey]);
+  }, [monthKey]);
 
   return { tasks, loading };
 }

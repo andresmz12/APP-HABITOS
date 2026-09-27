@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { useSession } from '@/lib/hooks/useSession';
 import { useCoupleSummary } from '@/lib/hooks/useCoupleSummary';
-import { useWeeklyTasks } from '@/lib/hooks/useWeeklyTasks';
 import { getCurrentWeekKey, formatWeekRange, getPrevWeekKey, getNextWeekKey } from '@/lib/utils/dates';
 import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
 import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
-import { SharedWeekPlanner } from '@/components/dashboard/SharedWeekPlanner';
+import { SharedCalendarPlanner } from '@/components/dashboard/SharedCalendarPlanner';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
 import { Calendar, Heart, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
@@ -18,7 +17,6 @@ export default function TogetherPage() {
   const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
   const isCurrentWeek = weekKey === getCurrentWeekKey();
   const { summary, loading: summaryLoading } = useCoupleSummary(weekKey);
-  const { tasks } = useWeeklyTasks(weekKey);
   const [copied, setCopied] = useState(false);
 
   if (sessionLoading || !user) {
@@ -29,30 +27,47 @@ export default function TogetherPage() {
     );
   }
 
-  // Not paired yet — show the code to share instead of the couple view
-  if (!user.coupleId) {
-    function handleCopy() {
-      if (!user?.pairCode) return;
-      navigator.clipboard?.writeText(user.pairCode).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
-    }
+  function handleCopy() {
+    if (!user?.pairCode) return;
+    navigator.clipboard?.writeText(user.pairCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
+  // Not paired yet — show the code to share, but still let them plan solo
+  if (!user.coupleId) {
     return (
-      <div className="min-h-screen bg-[#0F0F14] pb-24 flex flex-col items-center justify-center px-6 gap-6 text-center">
-        <Heart size={40} className="text-pink-400" fill="currentColor" />
-        <div>
-          <h1 className="text-white text-xl font-black mb-1.5">Aún no tienes pareja vinculada</h1>
-          <p className="text-gray-500 text-sm">Comparte este código para que se una a tu cuenta</p>
+      <div className="min-h-screen bg-[#0F0F14] pb-24">
+        <div className="px-4 pt-12 pb-5 flex flex-col items-center gap-4 text-center">
+          <Heart size={32} className="text-pink-400" fill="currentColor" />
+          <div>
+            <h1 className="text-white text-lg font-black mb-1">Aún no tienes pareja vinculada</h1>
+            <p className="text-gray-500 text-sm">Comparte este código para que se una a tu cuenta</p>
+          </div>
+          <button
+            onClick={handleCopy}
+            className="w-full max-w-xs flex items-center justify-center gap-3 py-5 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
+          >
+            <span className="text-2xl font-black text-white tracking-[0.3em]">{user.pairCode}</span>
+            {copied ? <Check size={18} className="text-green-400" /> : <Copy size={16} className="text-gray-500" />}
+          </button>
         </div>
-        <button
-          onClick={handleCopy}
-          className="w-full max-w-xs flex items-center justify-center gap-3 py-6 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
-        >
-          <span className="text-3xl font-black text-white tracking-[0.3em]">{user.pairCode}</span>
-          {copied ? <Check size={20} className="text-green-400" /> : <Copy size={18} className="text-gray-500" />}
-        </button>
+
+        <div className="px-4">
+          <Card className="space-y-3">
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Mi calendario
+              </p>
+              <p className="text-gray-600 text-xs mt-0.5">
+                Planea tu mes mientras se une tu pareja
+              </p>
+            </div>
+            <SharedCalendarPlanner />
+          </Card>
+        </div>
+
         <BottomNav />
       </div>
     );
@@ -141,17 +156,17 @@ export default function TogetherPage() {
           </Card>
         )}
 
-        {/* Shared weekly plan */}
+        {/* Shared plan calendar */}
         <Card className="space-y-3">
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Plan de la semana
+              Plan compartido
             </p>
             <p className="text-gray-600 text-xs mt-0.5">
               Anoten lo que cada uno debe hacer cada día
             </p>
           </div>
-          <SharedWeekPlanner weekKey={weekKey} tasks={tasks} />
+          <SharedCalendarPlanner />
         </Card>
       </div>
 

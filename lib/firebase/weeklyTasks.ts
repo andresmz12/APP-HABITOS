@@ -7,8 +7,8 @@ async function apiFetch(path: string, options?: RequestInit) {
   return body;
 }
 
-export function subscribeToWeekTasks(
-  weekKey: string,
+export function subscribeToMonthTasks(
+  monthKey: string,
   callback: (tasks: WeeklyTask[]) => void
 ): () => void {
   let active = true;
@@ -16,7 +16,7 @@ export function subscribeToWeekTasks(
   async function poll() {
     if (!active) return;
     try {
-      const { tasks } = await apiFetch(`/api/weekly-tasks?weekKey=${weekKey}`);
+      const { tasks } = await apiFetch(`/api/weekly-tasks?month=${monthKey}`);
       if (active) callback(tasks ?? []);
     } catch {
       if (active) callback([]);
@@ -28,11 +28,11 @@ export function subscribeToWeekTasks(
   return () => { active = false; clearInterval(timer); };
 }
 
-export async function createWeeklyTask(weekKey: string, dateKey: string, text: string): Promise<string> {
+export async function createWeeklyTask(dateKey: string, text: string): Promise<string> {
   const { task } = await apiFetch('/api/weekly-tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ weekKey, dateKey, text }),
+    body: JSON.stringify({ dateKey, text }),
   });
   return task.id;
 }

@@ -77,3 +77,55 @@ export function getNextWeekKey(weekKey: string): string {
   const d = new Date(weekKey + 'T00:00:00Z');
   return getDayKey(new Date(d.getTime() + 7 * 24 * 60 * 60 * 1000));
 }
+
+// Month key = "YYYY-MM", in Colombia time
+export function getMonthKey(date?: Date): string {
+  const d = date ?? getColombiaDate();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getCurrentMonthKey(): string {
+  return getMonthKey();
+}
+
+export function getPrevMonthKey(monthKey: string): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return getMonthKey(d);
+}
+
+export function getNextMonthKey(monthKey: string): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m, 1));
+  return getMonthKey(d);
+}
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+export function formatMonthLabel(monthKey: string): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+// Full calendar grid (Sun–Sat rows) for a month, including the padding days
+// from the previous/next month needed to fill complete weeks.
+export function getMonthGridDays(monthKey: string): Date[] {
+  const [y, m] = monthKey.split('-').map(Number);
+  const firstOfMonth = new Date(Date.UTC(y, m - 1, 1));
+  const lastOfMonth = new Date(Date.UTC(y, m, 0));
+
+  const startDay = firstOfMonth.getUTCDay(); // 0 = Sunday
+  const gridStart = new Date(firstOfMonth.getTime() - startDay * 24 * 60 * 60 * 1000);
+
+  const endDay = lastOfMonth.getUTCDay();
+  const gridEnd = new Date(lastOfMonth.getTime() + (6 - endDay) * 24 * 60 * 60 * 1000);
+
+  const days: Date[] = [];
+  for (let d = gridStart; d.getTime() <= gridEnd.getTime(); d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+    days.push(d);
+  }
+  return days;
+}
