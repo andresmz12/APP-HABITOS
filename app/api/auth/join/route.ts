@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 365 * 5,
     });
     return res;
-  } catch {
+  } catch (err) {
+    console.error('join error:', err);
     return NextResponse.json({ error: 'No se pudo vincular la pareja' }, { status: 500 });
   }
 }
