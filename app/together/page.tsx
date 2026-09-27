@@ -64,7 +64,7 @@ export default function TogetherPage() {
                 Planea tu mes mientras se une tu pareja
               </p>
             </div>
-            <SharedCalendarPlanner />
+            <SharedCalendarPlanner participants={[{ id: user.id, name: user.name, avatarColor: user.avatarColor }]} />
           </Card>
         </div>
 
@@ -166,7 +166,12 @@ export default function TogetherPage() {
               Anoten lo que cada uno debe hacer cada día
             </p>
           </div>
-          <SharedCalendarPlanner />
+          <SharedCalendarPlanner
+            participants={[
+              { id: user.id, name: user.name, avatarColor: user.avatarColor },
+              ...(partner ? [{ id: partner.user.id, name: partner.user.name, avatarColor: partner.user.avatarColor }] : []),
+            ]}
+          />
         </Card>
       </div>
 

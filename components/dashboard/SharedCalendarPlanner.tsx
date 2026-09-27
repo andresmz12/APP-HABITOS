@@ -18,9 +18,19 @@ import { useMonthTasks } from '@/lib/hooks/useWeeklyTasks';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
 
-const DAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-export function SharedCalendarPlanner() {
+interface Participant {
+  id: string;
+  name: string;
+  avatarColor: string;
+}
+
+interface SharedCalendarPlannerProps {
+  participants?: Participant[];
+}
+
+export function SharedCalendarPlanner({ participants }: SharedCalendarPlannerProps) {
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey());
   const { tasks } = useMonthTasks(monthKey);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -42,6 +52,18 @@ export function SharedCalendarPlanner() {
 
   return (
     <div className="space-y-3">
+      {/* Legend: whose color is whose */}
+      {participants && participants.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          {participants.map((p) => (
+            <div key={p.id} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.avatarColor }} />
+              <span className="text-xs text-gray-400 font-medium">{p.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Month header */}
       <div className="flex items-center justify-between">
         <button

@@ -15,13 +15,14 @@ export function getCurrentDayKey(): string {
   return getDayKey(getColombiaDate());
 }
 
-// Week key = YYYY-MM-DD of the Sunday that starts this week, in Colombia time.
-// e.g. week of Apr 13–19 → "2025-04-13"
+// Week key = YYYY-MM-DD of the Monday that starts this week, in Colombia time.
+// e.g. week of Apr 14–20 → "2025-04-14"
 export function getWeekKey(date?: Date): string {
   const d = date ?? getColombiaDate();
   const dayOfWeek = d.getUTCDay(); // 0 = Sunday
-  const sunday = new Date(d.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
-  return getDayKey(sunday);
+  const daysSinceMonday = (dayOfWeek + 6) % 7; // Monday = 0, ..., Sunday = 6
+  const monday = new Date(d.getTime() - daysSinceMonday * 24 * 60 * 60 * 1000);
+  return getDayKey(monday);
 }
 
 // Backward-compat alias
@@ -31,20 +32,20 @@ export function getCurrentWeekKey(): string {
   return getWeekKey();
 }
 
-// Return the 7 days (Sun–Sat) of a week as UTC-midnight Date objects
+// Return the 7 days (Mon–Sun) of a week as UTC-midnight Date objects
 export function getWeekDays(weekKey: string): Date[] {
-  const sunday = new Date(weekKey + 'T00:00:00Z');
+  const monday = new Date(weekKey + 'T00:00:00Z');
   return Array.from({ length: 7 }, (_, i) =>
-    new Date(sunday.getTime() + i * 24 * 60 * 60 * 1000)
+    new Date(monday.getTime() + i * 24 * 60 * 60 * 1000)
   );
 }
 
-// "Apr 13 – Apr 19" from weekKey "2025-04-13"
+// "Apr 14 – Apr 20" from weekKey "2025-04-14"
 export function formatWeekRange(weekKey: string): string {
-  const sunday = new Date(weekKey + 'T00:00:00Z');
-  const saturday = new Date(sunday.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const monday = new Date(weekKey + 'T00:00:00Z');
+  const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[sunday.getUTCMonth()]} ${sunday.getUTCDate()} – ${months[saturday.getUTCMonth()]} ${saturday.getUTCDate()}`;
+  return `${months[monday.getUTCMonth()]} ${monday.getUTCDate()} – ${months[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
 }
 
 // Is this dateKey equal to today in Colombia time?
@@ -110,18 +111,18 @@ export function formatMonthLabel(monthKey: string): string {
   return `${MONTH_NAMES[m - 1]} ${y}`;
 }
 
-// Full calendar grid (Sun–Sat rows) for a month, including the padding days
+// Full calendar grid (Mon–Sun rows) for a month, including the padding days
 // from the previous/next month needed to fill complete weeks.
 export function getMonthGridDays(monthKey: string): Date[] {
   const [y, m] = monthKey.split('-').map(Number);
   const firstOfMonth = new Date(Date.UTC(y, m - 1, 1));
   const lastOfMonth = new Date(Date.UTC(y, m, 0));
 
-  const startDay = firstOfMonth.getUTCDay(); // 0 = Sunday
-  const gridStart = new Date(firstOfMonth.getTime() - startDay * 24 * 60 * 60 * 1000);
+  const startOffset = (firstOfMonth.getUTCDay() + 6) % 7; // days since Monday
+  const gridStart = new Date(firstOfMonth.getTime() - startOffset * 24 * 60 * 60 * 1000);
 
-  const endDay = lastOfMonth.getUTCDay();
-  const gridEnd = new Date(lastOfMonth.getTime() + (6 - endDay) * 24 * 60 * 60 * 1000);
+  const endOffset = (lastOfMonth.getUTCDay() + 6) % 7; // days since Monday
+  const gridEnd = new Date(lastOfMonth.getTime() + (6 - endOffset) * 24 * 60 * 60 * 1000);
 
   const days: Date[] = [];
   for (let d = gridStart; d.getTime() <= gridEnd.getTime(); d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
