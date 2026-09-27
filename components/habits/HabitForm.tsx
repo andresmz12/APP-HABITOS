@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Habit, PartnerId } from '@/lib/types/models';
+import { Habit } from '@/lib/types/models';
 import { createHabit, updateHabit, deleteHabit, duplicateHabit } from '@/lib/firebase/habits';
 import { HABIT_EMOJIS } from '@/lib/utils/constants';
 import { Button } from '@/components/ui/Button';
@@ -12,12 +12,11 @@ import { Trash2, Copy, Bell, BellOff } from 'lucide-react';
 interface HabitFormProps {
   open: boolean;
   onClose: () => void;
-  partnerId: PartnerId;
   editHabit?: Habit;
   weeklyLimitReached?: boolean;
 }
 
-export function HabitForm({ open, onClose, partnerId, editHabit, weeklyLimitReached }: HabitFormProps) {
+export function HabitForm({ open, onClose, editHabit, weeklyLimitReached }: HabitFormProps) {
   const isEdit = !!editHabit;
   const [name, setName] = useState(editHabit?.name ?? '');
   const [icon, setIcon] = useState(editHabit?.icon ?? '🏃');
@@ -63,7 +62,7 @@ export function HabitForm({ open, onClose, partnerId, editHabit, weeklyLimitReac
           reminderTime: reminderEnabled ? reminderTime : undefined,
         });
       } else {
-        await createHabit(partnerId, {
+        await createHabit({
           name: name.trim(),
           icon,
           frequencyType,

@@ -1,29 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 import { hasReachedWeeklyLimit } from '../../route';
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser(req);
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
   try {
     const { id } = await params;
     const original = await prisma.habit.findUnique({ where: { id } });
-    if (!original) {
+    if (!original || original.userId !== user.id) {
       return NextResponse.json({ error: 'Habit not found' }, { status: 404 });
     }
 
-    if (await hasReachedWeeklyLimit(original.partnerId)) {
+    if (await hasReachedWeeklyLimit(user.id)) {
       return NextResponse.json(
         { error: 'Ya agregaste o duplicaste un hábito esta semana. Podrás hacerlo de nuevo la próxima semana.' },
         { status: 429 }
       );
     }
 
-    const count = await prisma.habit.count({ where: { partnerId: original.partnerId } });
+    const count = await prisma.habit.count({ where: { userId: user.id } });
     const habit = await prisma.habit.create({
       data: {
-        partnerId: original.partnerId,
+        userId: user.id,
         name: original.name,
         icon: original.icon,
         frequencyType: original.frequencyType,

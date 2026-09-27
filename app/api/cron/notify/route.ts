@@ -16,63 +16,42 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const config = await prisma.appConfig.findUnique({ where: { id: 'app' } });
-    if (!config) {
-      return NextResponse.json({ sent: false, reason: 'No config found' });
-    }
-
     const currentTime = getColombiaCurrentTime();
     const resend = new Resend(process.env.RESEND_API_KEY);
     const results: Record<string, unknown> = {};
 
-    // Global daily reminder at each partner's configured time
-    const times = config.notificationTimes.split(',').map((t) => t.trim());
-    const emails = [
-      config.partner1NotificationEmail,
-      config.partner2NotificationEmail,
-    ].filter((e): e is string => !!e);
+    // Global daily reminder, one per user at their own configured time
+    const dueUsers = await prisma.user.findMany({
+      where: { notificationsEnabled: true, reminderTime: currentTime, notificationEmail: { not: null } },
+    });
 
-    if (times.includes(currentTime) && emails.length) {
+    if (dueUsers.length) {
       await Promise.all(
-        emails.map((to) =>
+        dueUsers.map((u) =>
           resend.emails.send({
             from: 'Hábitos en Pareja <onboarding@resend.dev>',
-            to,
+            to: u.notificationEmail!,
             subject: '🌟 ¡Recuerda tus hábitos de hoy!',
             html: `
               <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0F0F14; color: #fff; border-radius: 16px;">
                 <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px;">Hábitos en Pareja</h1>
-                <p style="color: #9ca3af; margin: 0 0 24px;">¡Hola! Es hora de revisar los hábitos del día.</p>
-
-                <div style="background: #1A1A24; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                  <p style="margin: 0; font-size: 16px; color: #e5e7eb;">
-                    <strong style="color: ${config.partner1AvatarColor}">${config.partner1Name}</strong> y
-                    <strong style="color: ${config.partner2AvatarColor}"> ${config.partner2Name}</strong>,
-                    ¿ya completaron sus hábitos de hoy?
-                  </p>
-                </div>
-
+                <p style="color: #9ca3af; margin: 0 0 24px;">¡Hola ${u.name}! Es hora de revisar tus hábitos del día.</p>
                 <a href="https://app-habitos-production-5e3c.up.railway.app/home"
-                   style="display: block; text-align: center; background: linear-gradient(135deg, ${config.partner1AvatarColor}, ${config.partner2AvatarColor}); color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
+                   style="display: block; text-align: center; background: ${u.avatarColor}; color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
                   Abrir la app →
                 </a>
-
-                <p style="color: #4b5563; font-size: 12px; text-align: center; margin-top: 24px;">
-                  Hábitos en Pareja · Construyan rutinas juntos
-                </p>
               </div>
             `,
           })
         )
       );
-      results.globalReminder = { sent: true, to: emails, at: currentTime };
-    } else {
-      results.globalReminder = { sent: false };
     }
+    results.globalReminder = { sent: dueUsers.length > 0, to: dueUsers.map((u) => u.notificationEmail), at: currentTime };
 
     // Per-habit reminders: habits whose reminderTime matches now and aren't completed today
     const dueHabits = await prisma.habit.findMany({
       where: { isArchived: false, reminderEnabled: true, reminderTime: currentTime },
+      include: { user: true },
     });
 
     if (dueHabits.length) {
@@ -82,22 +61,21 @@ export async function POST(req: NextRequest) {
         select: { habitId: true },
       });
       const completedHabitIds = new Set(todaysCompletions.map((c) => c.habitId));
-      const pendingByPartner = new Map<string, string[]>();
+      const pendingByUser = new Map<string, { email: string; habitNames: string[] }>();
 
       for (const habit of dueHabits) {
         if (completedHabitIds.has(habit.id)) continue;
-        const list = pendingByPartner.get(habit.partnerId) ?? [];
-        list.push(`${habit.icon} ${habit.name}`);
-        pendingByPartner.set(habit.partnerId, list);
+        if (!habit.user.notificationEmail) continue;
+        const entry = pendingByUser.get(habit.userId) ?? { email: habit.user.notificationEmail, habitNames: [] };
+        entry.habitNames.push(`${habit.icon} ${habit.name}`);
+        pendingByUser.set(habit.userId, entry);
       }
 
       const habitEmailsSent: string[] = [];
-      for (const [partnerId, habitNames] of pendingByPartner) {
-        const to = partnerId === 'partner1' ? config.partner1NotificationEmail : config.partner2NotificationEmail;
-        if (!to) continue;
+      for (const { email, habitNames } of pendingByUser.values()) {
         await resend.emails.send({
           from: 'Hábitos en Pareja <onboarding@resend.dev>',
-          to,
+          to: email,
           subject: '⏰ Recordatorio de hábito',
           html: `
             <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0F0F14; color: #fff; border-radius: 16px;">
@@ -114,7 +92,7 @@ export async function POST(req: NextRequest) {
             </div>
           `,
         });
-        habitEmailsSent.push(to);
+        habitEmailsSent.push(email);
       }
       results.habitReminders = { sent: habitEmailsSent.length > 0, to: habitEmailsSent, at: currentTime };
     } else {

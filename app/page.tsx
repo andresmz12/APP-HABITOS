@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAppConfig } from '@/lib/firebase/appConfig';
+import { getMe } from '@/lib/firebase/auth';
 import { Logo } from '@/components/ui/Logo';
 
 export default function RootPage() {
@@ -11,12 +11,8 @@ export default function RootPage() {
   useEffect(() => {
     async function redirect() {
       try {
-        const config = await getAppConfig();
-        if (config?.isOnboardingComplete) {
-          router.replace('/home');
-        } else {
-          router.replace('/onboarding');
-        }
+        const { user } = await getMe();
+        router.replace(user ? '/home' : '/onboarding');
       } catch {
         router.replace('/onboarding');
       }

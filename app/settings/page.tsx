@@ -1,31 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppStore } from '@/lib/stores/appStore';
-import { updatePartner, updatePartnerEmail, updateNotificationTimes } from '@/lib/firebase/appConfig';
-import { Partner } from '@/lib/types/models';
+import { useSession } from '@/lib/hooks/useSession';
+import { updateProfile, logout } from '@/lib/firebase/auth';
+import { User } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS } from '@/lib/utils/constants';
-import { Bell, BellOff, Pencil, Mail, Plus, X } from 'lucide-react';
+import { Bell, BellOff, Pencil, Mail, Heart, LogOut, Copy, Check } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
 
 export default function SettingsPage() {
-  const { appConfig, setAppConfig } = useAppStore();
-  const [editPartner, setEditPartner] = useState<Partner | null>(null);
+  const router = useRouter();
+  const { user, partner, loading: sessionLoading } = useSession();
+  const [editOpen, setEditOpen] = useState(false);
+  const [draft, setDraft] = useState<User | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [emailInputs, setEmailInputs] = useState<{ partner1: string; partner2: string }>({ partner1: '', partner2: '' });
-  const [emailSaved, setEmailSaved] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
-  const [emailSaving, setEmailSaving] = useState<{ partner1: boolean; partner2: boolean }>({ partner1: false, partner2: false });
-  const [newTime, setNewTime] = useState('');
-  const [timesSaving, setTimesSaving] = useState(false);
-  const router = useRouter();
+  const [copied, setCopied] = useState(false);
 
-  if (!appConfig) {
+  useEffect(() => {
+    if (!sessionLoading && !user) router.replace('/onboarding');
+  }, [sessionLoading, user, router]);
+
+  if (sessionLoading || !user) {
     return (
       <div className="min-h-screen bg-[#0F0F14] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
@@ -33,20 +34,25 @@ export default function SettingsPage() {
     );
   }
 
-  async function handleSavePartner(partner: Partner) {
-    if (!appConfig) return;
+  function openEdit() {
+    setDraft({ ...user! });
+    setSaveError('');
+    setEditOpen(true);
+  }
+
+  async function handleSave() {
+    if (!draft) return;
     setSaving(true);
     setSaveError('');
     try {
-      await updatePartner(partner.id, {
-        name: partner.name,
-        avatarEmoji: partner.avatarEmoji,
-        avatarColor: partner.avatarColor,
-        notificationTime: partner.notificationTime,
-        notificationsEnabled: partner.notificationsEnabled,
+      await updateProfile({
+        name: draft.name,
+        avatarColor: draft.avatarColor,
+        notificationEmail: draft.notificationEmail,
+        reminderTime: draft.reminderTime,
+        notificationsEnabled: draft.notificationsEnabled,
       });
-      setAppConfig({ ...appConfig, [partner.id]: partner });
-      setEditPartner(null);
+      setEditOpen(false);
     } catch {
       setSaveError('No se pudo guardar. Intenta de nuevo.');
     } finally {
@@ -54,17 +60,32 @@ export default function SettingsPage() {
     }
   }
 
-  async function requestNotificationPermission(partner: Partner) {
+  async function requestNotificationPermission() {
+    if (!draft) return;
     if (!('Notification' in window)) {
       alert('Tu navegador no soporta notificaciones.');
       return;
     }
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      await handleSavePartner({ ...partner, notificationsEnabled: true });
+      setDraft({ ...draft, notificationsEnabled: true });
     } else {
       alert('Para recibir notificaciones, permite el permiso en tu navegador.');
     }
+  }
+
+  function handleCopyCode() {
+    if (!user?.pairCode) return;
+    navigator.clipboard?.writeText(user.pairCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  async function handleLogout() {
+    if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
+    await logout();
+    router.push('/onboarding');
   }
 
   return (
@@ -72,216 +93,106 @@ export default function SettingsPage() {
       <div className="px-4 pt-12 pb-4 space-y-5">
         <h1 className="text-white text-2xl font-black">Ajustes</h1>
 
-        {/* Partner profile cards */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
-            Perfiles
-          </p>
-          {([appConfig.partner1, appConfig.partner2] as Partner[]).map((partner) => (
-            <button
-              key={partner.id}
-              onClick={() => setEditPartner({ ...partner })}
-              className="w-full rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform"
-              style={{ border: `1px solid ${partner.avatarColor}30` }}
-            >
-              {/* Gradient header band */}
-              <div
-                className="px-5 py-4 flex items-center gap-4"
-                style={{
-                  background: `linear-gradient(135deg, ${partner.avatarColor}30 0%, ${partner.avatarColor}10 100%)`,
-                }}
-              >
-                <Avatar color={partner.avatarColor} name={partner.name} size="lg" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-black text-lg leading-tight truncate">
-                    {partner.name}
-                  </p>
-                  {/* Notification badge */}
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {partner.notificationsEnabled ? (
-                      <>
-                        <Bell size={11} style={{ color: partner.avatarColor }} />
-                        <span className="text-xs font-medium" style={{ color: partner.avatarColor }}>
-                          {partner.notificationTime}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <BellOff size={11} className="text-gray-600" />
-                        <span className="text-xs text-gray-600">Sin recordatorio</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                  style={{ backgroundColor: partner.avatarColor + '20', color: partner.avatarColor }}
-                >
-                  <Pencil size={11} />
-                  Editar
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Email reminders */}
+        {/* My profile card */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
-            Recordatorio por email
-          </p>
-          <div className="space-y-3">
-            {/* Email per partner */}
-            {([appConfig.partner1, appConfig.partner2] as Partner[]).map((partner) => {
-              const pid = partner.id as 'partner1' | 'partner2';
-              const currentEmail = pid === 'partner1' ? appConfig.partner1NotificationEmail : appConfig.partner2NotificationEmail;
-              return (
-                <div
-                  key={pid}
-                  className="rounded-2xl px-5 py-4 space-y-3 border"
-                  style={{ background: partner.avatarColor + '0d', borderColor: partner.avatarColor + '30' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Mail size={14} style={{ color: partner.avatarColor }} />
-                    <p className="text-gray-200 text-sm font-semibold">{partner.name}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={emailInputs[pid] || currentEmail || ''}
-                      onChange={e => {
-                        setEmailInputs(prev => ({ ...prev, [pid]: e.target.value }));
-                        setEmailSaved(prev => ({ ...prev, [pid]: false }));
-                      }}
-                      placeholder="correo@ejemplo.com"
-                      className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white placeholder-gray-600 text-sm outline-none transition-all"
-                    />
-                    <button
-                      disabled={emailSaving[pid] || !(emailInputs[pid] || currentEmail)}
-                      onClick={async () => {
-                        const val = emailInputs[pid] || currentEmail || '';
-                        if (!val) return;
-                        setEmailSaving(prev => ({ ...prev, [pid]: true }));
-                        try {
-                          await updatePartnerEmail(pid, val);
-                          setAppConfig({ ...appConfig, [`${pid}NotificationEmail`]: val });
-                          setEmailSaved(prev => ({ ...prev, [pid]: true }));
-                          setEmailInputs(prev => ({ ...prev, [pid]: '' }));
-                        } finally {
-                          setEmailSaving(prev => ({ ...prev, [pid]: false }));
-                        }
-                      }}
-                      className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-40 transition-opacity"
-                      style={{ backgroundColor: partner.avatarColor }}
-                    >
-                      {emailSaving[pid] ? '...' : emailSaved[pid] ? '✓' : 'Guardar'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Notification times */}
-            <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-white/5">
-              <div className="flex items-center gap-2">
-                <Bell size={14} className="text-violet-400" />
-                <p className="text-gray-200 text-sm font-semibold">Horarios de recordatorio</p>
-              </div>
-
-              {/* Time chips */}
-              <div className="flex flex-wrap gap-2">
-                {appConfig.notificationTimes.split(',').map((t) => t.trim()).filter(Boolean).map((time) => (
-                  <div
-                    key={time}
-                    className="flex items-center gap-1.5 bg-violet-600/20 border border-violet-500/30 rounded-xl px-3 py-1.5"
-                  >
-                    <span className="text-violet-300 text-sm font-semibold">{time}</span>
-                    <button
-                      disabled={timesSaving}
-                      onClick={async () => {
-                        const updated = appConfig.notificationTimes
-                          .split(',').map(t => t.trim()).filter(t => t && t !== time);
-                        setTimesSaving(true);
-                        try {
-                          await updateNotificationTimes(updated.length ? updated : ['20:00']);
-                          setAppConfig({ ...appConfig, notificationTimes: updated.length ? updated.join(',') : '20:00' });
-                        } finally {
-                          setTimesSaving(false);
-                        }
-                      }}
-                      className="text-violet-400 hover:text-white transition-colors disabled:opacity-40"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add time */}
-              {appConfig.notificationTimes.split(',').filter(Boolean).length < 5 && (
-                <div className="flex gap-2">
-                  <input
-                    type="time"
-                    value={newTime}
-                    onChange={e => setNewTime(e.target.value)}
-                    className="flex-1 bg-[#0F0F14] rounded-xl px-3 py-2.5 text-white text-sm outline-none"
-                  />
-                  <button
-                    disabled={!newTime || timesSaving}
-                    onClick={async () => {
-                      if (!newTime) return;
-                      const current = appConfig.notificationTimes.split(',').map(t => t.trim()).filter(Boolean);
-                      if (current.includes(newTime)) return;
-                      const updated = [...current, newTime];
-                      setTimesSaving(true);
-                      try {
-                        await updateNotificationTimes(updated);
-                        setAppConfig({ ...appConfig, notificationTimes: updated.join(',') });
-                        setNewTime('');
-                      } finally {
-                        setTimesSaving(false);
-                      }
-                    }}
-                    className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white bg-violet-600 disabled:opacity-40 flex items-center gap-1.5 transition-opacity"
-                  >
-                    <Plus size={14} />
-                    Agregar
-                  </button>
-                </div>
-              )}
-              <p className="text-gray-600 text-xs">Los horarios son en hora colombiana (UTC-5). Configura cron-job.org para ejecutar cada 15 min.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Reset onboarding */}
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
-            Datos
+            Mi perfil
           </p>
           <button
-            onClick={() => {
-              if (confirm('¿Ir al onboarding de nuevo? Los datos existentes se conservarán.'))
-                router.push('/onboarding');
-            }}
-            className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform"
+            onClick={openEdit}
+            className="w-full rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+            style={{ border: `1px solid ${user.avatarColor}30` }}
           >
-            <p className="text-gray-300 text-sm font-semibold">Cambiar nombres y avatares</p>
-            <p className="text-gray-600 text-xs mt-0.5">Vuelve a la pantalla inicial</p>
+            <div
+              className="px-5 py-4 flex items-center gap-4"
+              style={{ background: `linear-gradient(135deg, ${user.avatarColor}30 0%, ${user.avatarColor}10 100%)` }}
+            >
+              <Avatar color={user.avatarColor} name={user.name} size="lg" />
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-black text-lg leading-tight truncate">{user.name}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  {user.notificationsEnabled && user.notificationEmail ? (
+                    <>
+                      <Bell size={11} style={{ color: user.avatarColor }} />
+                      <span className="text-xs font-medium" style={{ color: user.avatarColor }}>
+                        {user.reminderTime}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <BellOff size={11} className="text-gray-600" />
+                      <span className="text-xs text-gray-600">Sin recordatorio</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                style={{ backgroundColor: user.avatarColor + '20', color: user.avatarColor }}
+              >
+                <Pencil size={11} />
+                Editar
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Pairing status */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
+            Pareja
+          </p>
+          {partner ? (
+            <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 flex items-center gap-3 border border-white/5">
+              <Avatar color={partner.avatarColor} name={partner.name} size="md" />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">Vinculado con {partner.name}</p>
+                <p className="text-gray-600 text-xs">Comparten hábitos y plan semanal</p>
+              </div>
+              <Heart size={16} className="text-pink-400" fill="currentColor" />
+            </div>
+          ) : (
+            <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 space-y-3 border border-violet-500/20">
+              <p className="text-gray-300 text-sm">Comparte este código con tu pareja para vincularla</p>
+              <button
+                onClick={handleCopyCode}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl bg-[#0F0F14]"
+              >
+                <span className="text-2xl font-black text-white tracking-[0.3em]">{user.pairCode}</span>
+                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={14} className="text-gray-500" />}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Logout */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
+            Cuenta
+          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"
+          >
+            <LogOut size={16} className="text-red-400" />
+            <div>
+              <p className="text-gray-300 text-sm font-semibold">Cerrar sesión</p>
+              <p className="text-gray-600 text-xs mt-0.5">Salir de este perfil en este dispositivo</p>
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Edit partner modal */}
-      {editPartner && (
-        <PartnerEditModal
-          partner={editPartner}
-          onChange={setEditPartner}
-          onSave={() => handleSavePartner(editPartner)}
-          onRequestNotif={() => requestNotificationPermission(editPartner)}
+      {/* Edit profile modal */}
+      {editOpen && draft && (
+        <ProfileEditModal
+          draft={draft}
+          onChange={setDraft}
+          onSave={handleSave}
+          onRequestNotif={requestNotificationPermission}
           saving={saving}
           saveError={saveError}
-          onClose={() => { setEditPartner(null); setSaveError(''); }}
+          onClose={() => setEditOpen(false)}
         />
       )}
 
@@ -290,8 +201,8 @@ export default function SettingsPage() {
   );
 }
 
-function PartnerEditModal({
-  partner,
+function ProfileEditModal({
+  draft,
   onChange,
   onSave,
   onRequestNotif,
@@ -299,8 +210,8 @@ function PartnerEditModal({
   saveError,
   onClose,
 }: {
-  partner: Partner;
-  onChange: (p: Partner) => void;
+  draft: User;
+  onChange: (u: User) => void;
   onSave: () => void;
   onRequestNotif: () => void;
   saving: boolean;
@@ -308,28 +219,25 @@ function PartnerEditModal({
   onClose: () => void;
 }) {
   return (
-    <Modal open title={`Editar perfil`} onClose={onClose}>
+    <Modal open title="Editar perfil" onClose={onClose}>
       <div className="space-y-5">
-        {/* Live preview */}
         <div className="flex justify-center">
-          <Avatar color={partner.avatarColor} name={partner.name || '?'} size="xl" />
+          <Avatar color={draft.avatarColor} name={draft.name || '?'} size="xl" />
         </div>
 
-        {/* Name */}
         <div>
           <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
             Nombre
           </label>
           <input
             type="text"
-            value={partner.name}
-            onChange={(e) => onChange({ ...partner, name: e.target.value })}
+            value={draft.name}
+            onChange={(e) => onChange({ ...draft, name: e.target.value })}
             maxLength={20}
             className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
-        {/* Color */}
         <div>
           <label className="text-xs font-semibold text-gray-400 mb-3 block uppercase tracking-wider">
             Color
@@ -339,10 +247,10 @@ function PartnerEditModal({
               <button
                 key={color}
                 type="button"
-                onClick={() => onChange({ ...partner, avatarColor: color })}
+                onClick={() => onChange({ ...draft, avatarColor: color })}
                 className={cn(
                   'w-9 h-9 rounded-full transition-all',
-                  partner.avatarColor === color &&
+                  draft.avatarColor === color &&
                     'ring-2 ring-white ring-offset-2 ring-offset-[#1A1A24] scale-110'
                 )}
                 style={{ backgroundColor: color }}
@@ -351,20 +259,34 @@ function PartnerEditModal({
           </div>
         </div>
 
-        {/* Notification time */}
+        <div>
+          <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+            Email para recordatorios
+          </label>
+          <div className="flex items-center gap-2 bg-[#22223A] rounded-xl px-4 py-3">
+            <Mail size={14} className="text-gray-500 flex-shrink-0" />
+            <input
+              type="email"
+              value={draft.notificationEmail ?? ''}
+              onChange={(e) => onChange({ ...draft, notificationEmail: e.target.value })}
+              placeholder="correo@ejemplo.com"
+              className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-600"
+            />
+          </div>
+        </div>
+
         <div>
           <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
             Hora de recordatorio
           </label>
           <input
             type="time"
-            value={partner.notificationTime}
-            onChange={(e) => onChange({ ...partner, notificationTime: e.target.value })}
+            value={draft.reminderTime}
+            onChange={(e) => onChange({ ...draft, reminderTime: e.target.value })}
             className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
-        {/* Notifications toggle */}
         <div className="flex items-center justify-between bg-[#22223A] rounded-xl px-4 py-3">
           <div>
             <p className="text-white text-sm font-semibold">Notificaciones</p>
@@ -372,25 +294,16 @@ function PartnerEditModal({
           </div>
           <button
             onClick={() => {
-              if (!partner.notificationsEnabled) {
-                onRequestNotif();
-              } else {
-                onChange({ ...partner, notificationsEnabled: false });
-              }
+              if (!draft.notificationsEnabled) onRequestNotif();
+              else onChange({ ...draft, notificationsEnabled: false });
             }}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-              partner.notificationsEnabled
-                ? 'text-white'
-                : 'bg-[#2a2a44] text-gray-400'
+              draft.notificationsEnabled ? 'text-white' : 'bg-[#2a2a44] text-gray-400'
             )}
-            style={
-              partner.notificationsEnabled
-                ? { backgroundColor: partner.avatarColor, color: 'white' }
-                : {}
-            }
+            style={draft.notificationsEnabled ? { backgroundColor: draft.avatarColor, color: 'white' } : {}}
           >
-            {partner.notificationsEnabled ? (
+            {draft.notificationsEnabled ? (
               <><Bell size={14} /> On</>
             ) : (
               <><BellOff size={14} /> Off</>
@@ -411,9 +324,9 @@ function PartnerEditModal({
           <Button
             onClick={onSave}
             loading={saving}
-            disabled={!partner.name.trim()}
+            disabled={!draft.name.trim()}
             className="flex-1"
-            style={{ backgroundColor: partner.avatarColor }}
+            style={{ backgroundColor: draft.avatarColor }}
           >
             Guardar
           </Button>

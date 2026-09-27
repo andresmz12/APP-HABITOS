@@ -1,4 +1,4 @@
-import { WeeklyTask, PartnerId } from '../types/models';
+import { WeeklyTask } from '../types/models';
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
@@ -28,16 +28,11 @@ export function subscribeToWeekTasks(
   return () => { active = false; clearInterval(timer); };
 }
 
-export async function createWeeklyTask(
-  partnerId: PartnerId,
-  weekKey: string,
-  dateKey: string,
-  text: string
-): Promise<string> {
+export async function createWeeklyTask(weekKey: string, dateKey: string, text: string): Promise<string> {
   const { task } = await apiFetch('/api/weekly-tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ partnerId, weekKey, dateKey, text }),
+    body: JSON.stringify({ weekKey, dateKey, text }),
   });
   return task.id;
 }

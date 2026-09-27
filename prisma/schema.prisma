@@ -7,31 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model AppConfig {
-  id                           String    @id @default("app")
-  coupleId                     String
-  isOnboardingComplete         Boolean   @default(false)
-  currentWeekKey               String
-  partner1Name                 String    @default("")
-  partner1AvatarColor          String    @default("#6C63FF")
-  partner1AvatarEmoji          String    @default("🧑")
-  partner1NotificationTime     String    @default("20:00")
-  partner1NotificationsEnabled Boolean   @default(false)
-  partner2Name                 String    @default("")
-  partner2AvatarColor          String    @default("#FF6B9D")
-  partner2AvatarEmoji          String    @default("👩")
-  partner2NotificationTime     String    @default("20:00")
-  partner2NotificationsEnabled Boolean   @default(false)
-  partner1NotificationEmail    String?
-  partner2NotificationEmail    String?
-  notificationTimes            String    @default("20:00")
-  createdAt                    DateTime  @default(now())
-  updatedAt                    DateTime  @updatedAt
+model Couple {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model User {
+  id                   String            @id @default(cuid())
+  sessionToken         String            @unique
+  name                 String
+  avatarColor          String            @default("#6C63FF")
+  notificationEmail    String?
+  reminderTime         String            @default("20:00")
+  notificationsEnabled Boolean           @default(false)
+  pairCode             String?           @unique
+  coupleId             String?
+  couple               Couple?           @relation(fields: [coupleId], references: [id])
+  habits               Habit[]
+  completions          HabitCompletion[]
+  weeklyTasks          WeeklyTask[]
+  weeklyStats          WeeklyStat[]
+  createdAt            DateTime          @default(now())
 }
 
 model Habit {
   id              String            @id @default(cuid())
-  partnerId       String
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String
   icon            String            @default("🏃")
   frequencyType   String            @default("daily")
@@ -47,31 +50,34 @@ model Habit {
 model HabitCompletion {
   id           String   @id @default(cuid())
   habitId      String
-  partnerId    String
+  userId       String
   completedAt  DateTime @default(now())
   dateKey      String
   weekKey      String
   pointsEarned Int      @default(1)
   photoUrl     String?
   habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyTask {
   id        String   @id @default(cuid())
-  partnerId String
+  userId    String
   weekKey   String
   dateKey   String
   text      String
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyStat {
-  weekKey                  String    @id
-  weekStart                DateTime
-  partner1TotalPoints      Int       @default(0)
-  partner1TotalCompletions Int       @default(0)
-  partner2TotalPoints      Int       @default(0)
-  partner2TotalCompletions Int       @default(0)
-  finalizedAt              DateTime?
-  createdAt                DateTime  @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  weekKey          String
+  totalPoints      Int      @default(0)
+  totalCompletions Int      @default(0)
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekKey])
 }

@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppStore } from '@/lib/stores/appStore';
-import { useHabits } from '@/lib/hooks/useHabits';
-import { useTodayCompletions, useWeekCompletions } from '@/lib/hooks/useCompletions';
-import { useWeeklyStats } from '@/lib/hooks/useWeeklyStats';
+import { useSession } from '@/lib/hooks/useSession';
+import { useCoupleSummary } from '@/lib/hooks/useCoupleSummary';
 import { useWeeklyTasks } from '@/lib/hooks/useWeeklyTasks';
 import { getCurrentWeekKey, formatWeekRange, getPrevWeekKey, getNextWeekKey } from '@/lib/utils/dates';
 import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
@@ -12,24 +10,18 @@ import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
 import { SharedWeekPlanner } from '@/components/dashboard/SharedWeekPlanner';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
-import { Calendar, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Heart, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 
 export default function TogetherPage() {
-  const { appConfig } = useAppStore();
+  const { user, loading: sessionLoading } = useSession();
   const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
   const isCurrentWeek = weekKey === getCurrentWeekKey();
-  const { stat, loading: statLoading } = useWeeklyStats(weekKey);
-
-  const { habits: p1Habits } = useHabits('partner1');
-  const { habits: p2Habits } = useHabits('partner2');
-  const { completions: p1Today } = useTodayCompletions('partner1');
-  const { completions: p2Today } = useTodayCompletions('partner2');
-  const { completions: p1Week } = useWeekCompletions('partner1', weekKey);
-  const { completions: p2Week } = useWeekCompletions('partner2', weekKey);
+  const { summary, loading: summaryLoading } = useCoupleSummary(weekKey);
   const { tasks } = useWeeklyTasks(weekKey);
+  const [copied, setCopied] = useState(false);
 
-  if (!appConfig) {
+  if (sessionLoading || !user) {
     return (
       <div className="min-h-screen bg-[#0F0F14] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
@@ -37,8 +29,37 @@ export default function TogetherPage() {
     );
   }
 
-  const p1 = appConfig.partner1;
-  const p2 = appConfig.partner2;
+  // Not paired yet — show the code to share instead of the couple view
+  if (!user.coupleId) {
+    function handleCopy() {
+      if (!user?.pairCode) return;
+      navigator.clipboard?.writeText(user.pairCode).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    }
+
+    return (
+      <div className="min-h-screen bg-[#0F0F14] pb-24 flex flex-col items-center justify-center px-6 gap-6 text-center">
+        <Heart size={40} className="text-pink-400" fill="currentColor" />
+        <div>
+          <h1 className="text-white text-xl font-black mb-1.5">Aún no tienes pareja vinculada</h1>
+          <p className="text-gray-500 text-sm">Comparte este código para que se una a tu cuenta</p>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="w-full max-w-xs flex items-center justify-center gap-3 py-6 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
+        >
+          <span className="text-3xl font-black text-white tracking-[0.3em]">{user.pairCode}</span>
+          {copied ? <Check size={20} className="text-green-400" /> : <Copy size={18} className="text-gray-500" />}
+        </button>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  const me = summary?.me;
+  const partner = summary?.partner;
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
@@ -46,20 +67,19 @@ export default function TogetherPage() {
       <div
         className="px-4 pt-12 pb-5"
         style={{
-          background: `radial-gradient(ellipse 140% 160px at 20% 0%, ${p1.avatarColor}18 0%, transparent 60%),
-                       radial-gradient(ellipse 140% 160px at 80% 0%, ${p2.avatarColor}18 0%, transparent 60%)`,
+          background: `radial-gradient(ellipse 140% 160px at 20% 0%, ${user.avatarColor}18 0%, transparent 60%),
+                       radial-gradient(ellipse 140% 160px at 80% 0%, ${partner?.user.avatarColor ?? user.avatarColor}18 0%, transparent 60%)`,
         }}
       >
-        {/* Both partners with heart */}
         <div className="flex items-center justify-center gap-3 mb-4">
-          <Avatar color={p1.avatarColor} name={p1.name} size="md" />
+          <Avatar color={user.avatarColor} name={user.name} size="md" />
           <Heart size={16} className="text-pink-400" fill="currentColor" />
-          <Avatar color={p2.avatarColor} name={p2.name} size="md" />
+          {partner && <Avatar color={partner.user.avatarColor} name={partner.user.name} size="md" />}
         </div>
 
         <div className="text-center">
           <h1 className="text-white text-2xl font-black leading-none">
-            {p1.name} &amp; {p2.name}
+            {user.name} {partner && <>&amp; {partner.user.name}</>}
           </h1>
           <div className="flex items-center justify-center gap-2 mt-1.5">
             <button
@@ -88,46 +108,38 @@ export default function TogetherPage() {
 
       <div className="px-4 space-y-4">
         {/* Scoreboard */}
-        {statLoading ? (
+        {summaryLoading || !me || !partner ? (
           <div className="h-64 bg-[#1A1A24] rounded-2xl animate-pulse" />
         ) : (
-          <CoupleScoreboard
-            appConfig={appConfig}
-            weeklyStat={stat}
-            p1Habits={p1Habits.length}
-            p2Habits={p2Habits.length}
-            p1Today={p1Today.length}
-            p2Today={p2Today.length}
-          />
+          <CoupleScoreboard me={me} partner={partner} />
         )}
 
-        {/* Weekly calendar per partner */}
-        <Card className="space-y-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            Días completados
-          </p>
+        {/* Weekly calendar per person */}
+        {me && (
+          <Card className="space-y-5">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Días completados
+            </p>
 
-          {[
-            { partner: p1, habits: p1Habits, completions: p1Week },
-            { partner: p2, habits: p2Habits, completions: p2Week },
-          ].map(({ partner, habits, completions }) => (
-            <div key={partner.id} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Avatar color={partner.avatarColor} name={partner.name} size="sm" />
-                <span className="text-sm text-gray-300 font-semibold">{partner.name}</span>
-                <span className="text-xs text-gray-600 ml-auto">
-                  {completions.length} completaciones
-                </span>
+            {[me, ...(partner ? [partner] : [])].map((side) => (
+              <div key={side.user.id} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Avatar color={side.user.avatarColor} name={side.user.name} size="sm" />
+                  <span className="text-sm text-gray-300 font-semibold">{side.user.name}</span>
+                  <span className="text-xs text-gray-600 ml-auto">
+                    {side.weekCompletions.length} completaciones
+                  </span>
+                </div>
+                <WeeklyCalendar
+                  weekKey={weekKey}
+                  habits={side.habits}
+                  completions={side.weekCompletions}
+                  color={side.user.avatarColor}
+                />
               </div>
-              <WeeklyCalendar
-                weekKey={weekKey}
-                habits={habits}
-                completions={completions}
-                color={partner.avatarColor}
-              />
-            </div>
-          ))}
-        </Card>
+            ))}
+          </Card>
+        )}
 
         {/* Shared weekly plan */}
         <Card className="space-y-3">
@@ -136,10 +148,10 @@ export default function TogetherPage() {
               Plan de la semana
             </p>
             <p className="text-gray-600 text-xs mt-0.5">
-              Anoten juntos lo que cada uno debe hacer cada día
+              Anoten lo que cada uno debe hacer cada día
             </p>
           </div>
-          <SharedWeekPlanner weekKey={weekKey} tasks={tasks} appConfig={appConfig} />
+          <SharedWeekPlanner weekKey={weekKey} tasks={tasks} />
         </Card>
       </div>
 

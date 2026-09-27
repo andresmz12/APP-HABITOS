@@ -1,14 +1,14 @@
-import { Habit, HabitCompletion, PartnerId } from '../types/models';
+import { Habit, HabitCompletion } from '../types/models';
 import { getCurrentDayKey } from '../utils/dates';
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `API error: ${res.status}`);
+  return body;
 }
 
 export function subscribeToTodayCompletions(
-  partnerId: PartnerId,
   callback: (completions: HabitCompletion[]) => void
 ): () => void {
   let active = true;
@@ -17,33 +17,7 @@ export function subscribeToTodayCompletions(
     if (!active) return;
     try {
       const dateKey = getCurrentDayKey();
-      const { completions } = await apiFetch(
-        `/api/completions?partnerId=${partnerId}&dateKey=${dateKey}`
-      );
-      if (active) callback(completions ?? []);
-    } catch {
-      if (active) callback([]);
-    }
-  }
-
-  poll();
-  const timer = setInterval(poll, 5000);
-  return () => { active = false; clearInterval(timer); };
-}
-
-export function subscribeToWeekCompletions(
-  partnerId: PartnerId,
-  weekKey: string,
-  callback: (completions: HabitCompletion[]) => void
-): () => void {
-  let active = true;
-
-  async function poll() {
-    if (!active) return;
-    try {
-      const { completions } = await apiFetch(
-        `/api/completions?partnerId=${partnerId}&weekKey=${weekKey}`
-      );
+      const { completions } = await apiFetch(`/api/completions?dateKey=${dateKey}`);
       if (active) callback(completions ?? []);
     } catch {
       if (active) callback([]);
@@ -66,7 +40,7 @@ export async function toggleCompletion(
     await apiFetch('/api/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ habitId: habit.id, partnerId: habit.partnerId, photoUrl }),
+      body: JSON.stringify({ habitId: habit.id, photoUrl }),
     });
   }
 }

@@ -6,17 +6,17 @@ import { Check, Pencil } from 'lucide-react';
 import { Habit, HabitCompletion } from '@/lib/types/models';
 import { toggleCompletion } from '@/lib/firebase/completions';
 import { cn } from '@/lib/utils/cn';
-import { PARTNER_COLORS } from '@/lib/utils/constants';
 import { PhotoModal } from './PhotoModal';
 import { PhotoViewer } from './PhotoViewer';
 
 interface HabitCardProps {
   habit: Habit;
   completion: HabitCompletion | null;
+  color: string;
   onEdit?: () => void;
 }
 
-export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
+export function HabitCard({ habit, completion, color, onEdit }: HabitCardProps) {
   const [loading, setLoading] = useState(false);
   const [optimisticCompleted, setOptimisticCompleted] = useState<boolean | null>(null);
   const [showPoints, setShowPoints] = useState(false);
@@ -25,7 +25,6 @@ export function HabitCard({ habit, completion, onEdit }: HabitCardProps) {
   const [viewingPhoto, setViewingPhoto] = useState(false);
 
   const isCompleted = optimisticCompleted !== null ? optimisticCompleted : !!completion;
-  const color = PARTNER_COLORS[habit.partnerId].primary;
 
   // Clear optimistic state once polling confirms the real state
   useEffect(() => {

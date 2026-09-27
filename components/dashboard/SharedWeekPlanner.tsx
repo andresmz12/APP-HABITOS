@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
-import { AppConfig, PartnerId, WeeklyTask } from '@/lib/types/models';
+import { WeeklyTask } from '@/lib/types/models';
 import { getWeekDays, getDayKey, getCurrentDayKey } from '@/lib/utils/dates';
 import { createWeeklyTask, deleteWeeklyTask } from '@/lib/firebase/weeklyTasks';
 import { Avatar } from '@/components/ui/Avatar';
@@ -14,10 +14,9 @@ const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 interface SharedWeekPlannerProps {
   weekKey: string;
   tasks: WeeklyTask[];
-  appConfig: AppConfig;
 }
 
-export function SharedWeekPlanner({ weekKey, tasks, appConfig }: SharedWeekPlannerProps) {
+export function SharedWeekPlanner({ weekKey, tasks }: SharedWeekPlannerProps) {
   const days = useMemo(() => getWeekDays(weekKey), [weekKey]);
   const [openDay, setOpenDay] = useState<string | null>(null);
 
@@ -63,24 +62,28 @@ export function SharedWeekPlanner({ weekKey, tasks, appConfig }: SharedWeekPlann
               <p className="text-gray-700 text-xs">Sin pendientes</p>
             ) : (
               <div className="space-y-1.5">
-                {dayTasks.map((task) => {
-                  const owner = appConfig[task.partnerId];
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 bg-[#22223A]/60 rounded-lg px-2.5 py-1.5"
+                {dayTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-2 bg-[#22223A]/60 rounded-lg px-2.5 py-1.5"
+                  >
+                    {task.user && (
+                      <Avatar
+                        color={task.user.avatarColor}
+                        name={task.user.name}
+                        size="sm"
+                        className="!w-5 !h-5 !text-[9px]"
+                      />
+                    )}
+                    <span className="text-gray-200 text-xs flex-1 min-w-0 break-words">{task.text}</span>
+                    <button
+                      onClick={() => deleteWeeklyTask(task.id)}
+                      className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
                     >
-                      <Avatar color={owner.avatarColor} name={owner.name} size="sm" className="!w-5 !h-5 !text-[9px]" />
-                      <span className="text-gray-200 text-xs flex-1 min-w-0 break-words">{task.text}</span>
-                      <button
-                        onClick={() => deleteWeeklyTask(task.id)}
-                        className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  );
-                })}
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -88,12 +91,7 @@ export function SharedWeekPlanner({ weekKey, tasks, appConfig }: SharedWeekPlann
       })}
 
       {openDay && (
-        <AddTaskModal
-          dateKey={openDay}
-          weekKey={weekKey}
-          appConfig={appConfig}
-          onClose={() => setOpenDay(null)}
-        />
+        <AddTaskModal dateKey={openDay} weekKey={weekKey} onClose={() => setOpenDay(null)} />
       )}
     </div>
   );
@@ -102,15 +100,12 @@ export function SharedWeekPlanner({ weekKey, tasks, appConfig }: SharedWeekPlann
 function AddTaskModal({
   dateKey,
   weekKey,
-  appConfig,
   onClose,
 }: {
   dateKey: string;
   weekKey: string;
-  appConfig: AppConfig;
   onClose: () => void;
 }) {
-  const [partnerId, setPartnerId] = useState<PartnerId>('partner1');
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -118,7 +113,7 @@ function AddTaskModal({
     if (!text.trim()) return;
     setSaving(true);
     try {
-      await createWeeklyTask(partnerId, weekKey, dateKey, text.trim());
+      await createWeeklyTask(weekKey, dateKey, text.trim());
       onClose();
     } finally {
       setSaving(false);
@@ -144,32 +139,11 @@ function AddTaskModal({
         >
           <h2 className="text-white font-bold text-base">Nuevo pendiente · {dateKey}</h2>
 
-          <div className="flex gap-2">
-            {(['partner1', 'partner2'] as const).map((pid) => {
-              const p = appConfig[pid];
-              return (
-                <button
-                  key={pid}
-                  type="button"
-                  onClick={() => setPartnerId(pid)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all',
-                    partnerId === pid ? 'text-white' : 'bg-[#22223A] text-gray-400'
-                  )}
-                  style={partnerId === pid ? { backgroundColor: p.avatarColor + '40', border: `1px solid ${p.avatarColor}` } : {}}
-                >
-                  <Avatar color={p.avatarColor} name={p.name} size="sm" />
-                  {p.name}
-                </button>
-              );
-            })}
-          </div>
-
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="¿Qué debe hacer esta persona?"
+            placeholder="¿Qué debes hacer ese día?"
             maxLength={140}
             autoFocus
             className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"

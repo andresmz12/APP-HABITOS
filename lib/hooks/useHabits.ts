@@ -1,22 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Habit, PartnerId } from '../types/models';
+import { Habit } from '../types/models';
 import { subscribeToHabits } from '../firebase/habits';
 
-export function useHabits(partnerId: PartnerId) {
+export function useHabits() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [weeklyLimitReached, setWeeklyLimitReached] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [weeklyPoints, setWeeklyPoints] = useState(0);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = subscribeToHabits(
-      partnerId,
-      (data, limitReached) => {
-        setHabits(data);
-        setWeeklyLimitReached(limitReached);
+      (data) => {
+        setHabits(data.habits);
+        setWeeklyLimitReached(data.weeklyLimitReached);
+        setStreak(data.streak);
+        setWeeklyPoints(data.weeklyPoints);
         setLoading(false);
       },
       (err) => {
@@ -25,7 +28,7 @@ export function useHabits(partnerId: PartnerId) {
       }
     );
     return unsubscribe;
-  }, [partnerId]);
+  }, []);
 
-  return { habits, loading, error, weeklyLimitReached };
+  return { habits, loading, error, weeklyLimitReached, streak, weeklyPoints };
 }

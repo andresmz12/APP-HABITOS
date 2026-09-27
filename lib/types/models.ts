@@ -1,32 +1,19 @@
-export type PartnerId = 'partner1' | 'partner2';
-
-export interface Partner {
-  id: PartnerId;
+export interface User {
+  id: string;
   name: string;
   avatarColor: string;
-  avatarEmoji: string;
-  notificationTime: string; // "HH:mm"
+  notificationEmail?: string | null;
+  reminderTime: string; // "HH:mm"
   notificationsEnabled: boolean;
-  fcmToken?: string;
-}
-
-export interface AppConfig {
-  coupleId: string;
-  isOnboardingComplete: boolean;
-  currentWeekKey: string;
-  partner1: Partner;
-  partner2: Partner;
-  partner1NotificationEmail?: string;
-  partner2NotificationEmail?: string;
-  notificationTimes: string; // comma-separated "HH:mm,HH:mm"
-  createdAt: Date | string;
+  pairCode?: string | null;
+  coupleId?: string | null;
 }
 
 export type FrequencyType = 'daily' | 'custom';
 
 export interface Habit {
   id: string;
-  partnerId: PartnerId;
+  userId: string;
   name: string;
   icon: string;
   frequencyType: FrequencyType;
@@ -38,35 +25,40 @@ export interface Habit {
   createdAt: Date | string;
 }
 
-export interface WeeklyTask {
-  id: string;
-  partnerId: PartnerId;
-  weekKey: string;
-  dateKey: string; // "2025-04-13"
-  text: string;
-  createdAt: Date | string;
-}
-
 export interface HabitCompletion {
   id: string;
   habitId: string;
-  partnerId: PartnerId;
+  userId: string;
   completedAt: Date | string;
   dateKey: string; // "2025-04-13"
-  weekKey: string; // "2025-W15"
+  weekKey: string; // "2025-04-13" (Sunday of that week)
   pointsEarned: number;
   photoUrl?: string;
 }
 
-export interface PartnerWeeklyStat {
-  totalPoints: number;
-  totalCompletions: number;
+export interface WeeklyTask {
+  id: string;
+  userId: string;
+  weekKey: string;
+  dateKey: string;
+  text: string;
+  createdAt: Date | string;
+  user?: { id: string; name: string; avatarColor: string };
 }
 
-export interface WeeklyStat {
-  weekKey: string;
-  weekStart: Date | string;
-  partner1: PartnerWeeklyStat;
-  partner2: PartnerWeeklyStat;
-  finalizedAt?: Date | string;
+export interface CoupleSide {
+  user: { id: string; name: string; avatarColor: string };
+  habits: Habit[];
+  habitsCount: number;
+  todayCompletions: number;
+  weekCompletions: HabitCompletion[];
+  points: number;
+  totalCompletions: number;
+  streak: number;
+}
+
+export interface CoupleSummary {
+  me: CoupleSide;
+  partner: CoupleSide | null;
+  pairCode?: string | null;
 }

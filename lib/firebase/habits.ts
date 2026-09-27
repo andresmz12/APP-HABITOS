@@ -1,4 +1,4 @@
-import { Habit, PartnerId } from '../types/models';
+import { Habit } from '../types/models';
 
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
@@ -7,9 +7,15 @@ async function apiFetch(path: string, options?: RequestInit) {
   return body;
 }
 
+export interface HabitsSnapshot {
+  habits: Habit[];
+  weeklyLimitReached: boolean;
+  streak: number;
+  weeklyPoints: number;
+}
+
 export function subscribeToHabits(
-  partnerId: PartnerId,
-  callback: (habits: Habit[], weeklyLimitReached: boolean) => void,
+  callback: (data: HabitsSnapshot) => void,
   onError?: (err: Error) => void
 ): () => void {
   let active = true;
@@ -17,8 +23,10 @@ export function subscribeToHabits(
   async function poll() {
     if (!active) return;
     try {
-      const { habits, weeklyLimitReached } = await apiFetch(`/api/habits?partnerId=${partnerId}`);
-      if (active) callback(habits ?? [], !!weeklyLimitReached);
+      const { habits, weeklyLimitReached, streak, weeklyPoints } = await apiFetch('/api/habits');
+      if (active) {
+        callback({ habits: habits ?? [], weeklyLimitReached: !!weeklyLimitReached, streak: streak ?? 0, weeklyPoints: weeklyPoints ?? 0 });
+      }
     } catch (err) {
       if (active) onError?.(err as Error);
     }
@@ -30,13 +38,12 @@ export function subscribeToHabits(
 }
 
 export async function createHabit(
-  partnerId: PartnerId,
-  data: Omit<Habit, 'id' | 'createdAt' | 'sortOrder' | 'isArchived' | 'partnerId'>
+  data: Omit<Habit, 'id' | 'createdAt' | 'sortOrder' | 'isArchived' | 'userId'>
 ): Promise<string> {
   const { habit } = await apiFetch('/api/habits', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ partnerId, ...data }),
+    body: JSON.stringify(data),
   });
   return habit.id;
 }

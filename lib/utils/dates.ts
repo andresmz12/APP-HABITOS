@@ -52,6 +52,12 @@ export function isDayKey(dateKey: string): boolean {
   return dateKey === getCurrentDayKey();
 }
 
+// The dateKey for the day before the given one
+export function getPrevDayKey(dateKey: string): string {
+  const d = new Date(dateKey + 'T00:00:00Z');
+  return getDayKey(new Date(d.getTime() - 24 * 60 * 60 * 1000));
+}
+
 // Start and end of a week given its weekKey
 export function getWeekStart(weekKey: string): Date {
   return new Date(weekKey + 'T00:00:00Z');

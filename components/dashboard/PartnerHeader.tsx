@@ -1,22 +1,24 @@
 'use client';
 
-import { Partner } from '@/lib/types/models';
+import { User } from '@/lib/types/models';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Avatar } from '@/components/ui/Avatar';
-import { Zap } from 'lucide-react';
+import { Zap, Flame } from 'lucide-react';
 
 interface PartnerHeaderProps {
-  partner: Partner;
+  user: User;
   completedToday: number;
   totalHabits: number;
   weeklyPoints: number;
+  streak: number;
 }
 
 export function PartnerHeader({
-  partner,
+  user,
   completedToday,
   totalHabits,
   weeklyPoints,
+  streak,
 }: PartnerHeaderProps) {
   const percentage = totalHabits > 0 ? (completedToday / totalHabits) * 100 : 0;
   const allDone = totalHabits > 0 && completedToday >= totalHabits;
@@ -25,8 +27,8 @@ export function PartnerHeader({
     <div
       className="rounded-2xl p-4 flex items-center gap-4"
       style={{
-        background: `linear-gradient(135deg, ${partner.avatarColor}18 0%, ${partner.avatarColor}08 100%)`,
-        border: `1px solid ${partner.avatarColor}28`,
+        background: `linear-gradient(135deg, ${user.avatarColor}18 0%, ${user.avatarColor}08 100%)`,
+        border: `1px solid ${user.avatarColor}28`,
       }}
     >
       {/* Avatar inside progress ring */}
@@ -35,15 +37,15 @@ export function PartnerHeader({
           percentage={percentage}
           size={72}
           strokeWidth={5}
-          color={partner.avatarColor}
+          color={user.avatarColor}
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <Avatar color={partner.avatarColor} name={partner.name} size="md" />
+          <Avatar color={user.avatarColor} name={user.name} size="md" />
         </div>
         {allDone && (
           <div
             className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
-            style={{ backgroundColor: partner.avatarColor }}
+            style={{ backgroundColor: user.avatarColor }}
           >
             ✓
           </div>
@@ -54,7 +56,7 @@ export function PartnerHeader({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-white font-bold text-base leading-tight truncate">
-            {partner.name}
+            {user.name}
           </p>
           {allDone && <span className="text-base">🎉</span>}
         </div>
@@ -70,16 +72,22 @@ export function PartnerHeader({
         {/* Points + streak row */}
         <div className="flex items-center gap-3 mt-2">
           <div className="flex items-center gap-1">
-            <Zap size={12} style={{ color: partner.avatarColor }} />
+            <Zap size={12} style={{ color: user.avatarColor }} />
             <span
               className="text-sm font-black tabular-nums"
-              style={{ color: partner.avatarColor }}
+              style={{ color: user.avatarColor }}
             >
               {weeklyPoints}
             </span>
             <span className="text-gray-600 text-[10px]">pts</span>
           </div>
-          <span className="text-gray-700 text-[10px]">esta semana</span>
+          {streak > 0 && (
+            <div className="flex items-center gap-1">
+              <Flame size={12} className="text-orange-400" fill="currentColor" />
+              <span className="text-sm font-black tabular-nums text-orange-400">{streak}</span>
+              <span className="text-gray-600 text-[10px]">racha</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -87,7 +95,7 @@ export function PartnerHeader({
       <div className="flex-shrink-0 text-right">
         <span
           className="text-2xl font-black tabular-nums"
-          style={{ color: percentage === 100 ? partner.avatarColor : 'rgba(255,255,255,0.15)' }}
+          style={{ color: percentage === 100 ? user.avatarColor : 'rgba(255,255,255,0.15)' }}
         >
           {Math.round(percentage)}
         </span>

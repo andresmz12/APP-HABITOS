@@ -1,24 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAppStore } from '@/lib/stores/appStore';
-import { useAppConfig } from '@/lib/hooks/useAppConfig';
-import { useWeeklyReset } from '@/lib/hooks/useWeeklyReset';
-
-function AppConfigLoader({ children }: { children: React.ReactNode }) {
-  useAppConfig();
-  useWeeklyReset();
-  return <>{children}</>;
-}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  const setHasHydrated = useAppStore((s) => s.setHasHydrated);
 
   useEffect(() => {
     setMounted(true);
-    setHasHydrated(true);
-  }, [setHasHydrated]);
+  }, []);
 
   if (!mounted) {
     return (
@@ -28,5 +17,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AppConfigLoader>{children}</AppConfigLoader>;
+  return <>{children}</>;
 }

@@ -77,6 +77,7 @@ export function HabitList({ habits, completions, onEdit, loading, partnerColor }
           <HabitCard
             habit={habit}
             completion={completionMap.get(habit.id) ?? null}
+            color={partnerColor}
             onEdit={onEdit ? () => onEdit(habit) : undefined}
           />
         </motion.div>

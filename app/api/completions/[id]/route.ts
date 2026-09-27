@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getSessionUser } from '@/lib/auth';
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getSessionUser(req);
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
   try {
     const { id } = await params;
+    const existing = await prisma.habitCompletion.findUnique({ where: { id } });
+    if (!existing || existing.userId !== user.id) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
 
     await prisma.$transaction(async (tx) => {
-      const completion = await tx.habitCompletion.delete({ where: { id } });
-
-      const field =
-        completion.partnerId === 'partner1'
-          ? { partner1TotalPoints: { decrement: 1 }, partner1TotalCompletions: { decrement: 1 } }
-          : { partner2TotalPoints: { decrement: 1 }, partner2TotalCompletions: { decrement: 1 } };
-
+      await tx.habitCompletion.delete({ where: { id } });
       await tx.weeklyStat.update({
-        where: { weekKey: completion.weekKey },
-        data: field,
+        where: { userId_weekKey: { userId: existing.userId, weekKey: existing.weekKey } },
+        data: { totalPoints: { decrement: 1 }, totalCompletions: { decrement: 1 } },
       });
     });
 
