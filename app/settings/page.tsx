@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
-import { updateProfile, logout, getRecoveryCode } from '@/lib/firebase/auth';
+import { updateProfile, logout, logoutAll, getRecoveryCode } from '@/lib/firebase/auth';
 import { User } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
@@ -88,6 +88,12 @@ export default function SettingsPage() {
   async function handleLogout() {
     if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
     await logout();
+    router.push('/onboarding');
+  }
+
+  async function handleLogoutAll() {
+    if (!confirm('¿Cerrar sesión en TODOS los dispositivos donde tengas esta cuenta abierta?')) return;
+    await logoutAll();
     router.push('/onboarding');
   }
 
@@ -197,7 +203,7 @@ export default function SettingsPage() {
               <p className="text-gray-300 text-sm font-semibold">
                 {loadingRecovery ? 'Cargando...' : recoveryCode ? 'Ocultar código' : 'Ver código de recuperación'}
               </p>
-              <p className="text-gray-600 text-xs mt-0.5">Úsalo si pierdes este dispositivo</p>
+              <p className="text-gray-600 text-xs mt-0.5">Úsalo para entrar desde otro celular</p>
             </div>
           </button>
           {recoveryCode && (
@@ -222,6 +228,16 @@ export default function SettingsPage() {
             <div>
               <p className="text-gray-300 text-sm font-semibold">Cerrar sesión</p>
               <p className="text-gray-600 text-xs mt-0.5">Salir de este perfil en este dispositivo</p>
+            </div>
+          </button>
+          <button
+            onClick={handleLogoutAll}
+            className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"
+          >
+            <LogOut size={16} className="text-red-400" />
+            <div>
+              <p className="text-gray-300 text-sm font-semibold">Cerrar sesión en todos los dispositivos</p>
+              <p className="text-gray-600 text-xs mt-0.5">Por si compartiste tu código sin querer</p>
             </div>
           </button>
         </div>

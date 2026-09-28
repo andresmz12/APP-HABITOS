@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { SESSION_COOKIE, generateSessionToken, generateRecoveryCode, sanitizeUser } from '@/lib/auth';
+import { SESSION_COOKIE, createSession, generateRecoveryCode, sanitizeUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Código inválido o ya fue usado' }, { status: 404 });
     }
 
-    const sessionToken = generateSessionToken();
     let recoveryCode = generateRecoveryCode();
     for (let i = 0; i < 5; i++) {
       const existing = await prisma.user.findUnique({ where: { recoveryCode } });
@@ -30,9 +29,10 @@ export async function POST(req: NextRequest) {
       const couple = await tx.couple.create({ data: {} });
       await tx.user.update({ where: { id: host.id }, data: { coupleId: couple.id, pairCode: null } });
       return tx.user.create({
-        data: { name: name.trim(), avatarColor: avatarColor || '#FF6B9D', sessionToken, coupleId: couple.id, recoveryCode },
+        data: { name: name.trim(), avatarColor: avatarColor || '#FF6B9D', coupleId: couple.id, recoveryCode },
       });
     });
+    const sessionToken = await createSession(user.id);
 
     const res = NextResponse.json({ user: sanitizeUser(user), recoveryCode });
     res.cookies.set(SESSION_COOKIE, sessionToken, {

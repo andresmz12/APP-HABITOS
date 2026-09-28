@@ -83,3 +83,7 @@ export async function updateProfile(
 export async function logout(): Promise<void> {
   await apiFetch('/api/auth/logout', { method: 'POST' });
 }
+
+export async function logoutAll(): Promise<void> {
+  await apiFetch('/api/auth/logout-all', { method: 'POST' });
+}

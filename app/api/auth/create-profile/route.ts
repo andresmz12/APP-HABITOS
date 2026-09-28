@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { SESSION_COOKIE, generateSessionToken, generatePairCode, generateRecoveryCode, sanitizeUser } from '@/lib/auth';
+import { SESSION_COOKIE, createSession, generatePairCode, generateRecoveryCode, sanitizeUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
     }
 
-    const sessionToken = generateSessionToken();
     let pairCode = generatePairCode();
     let recoveryCode = generateRecoveryCode();
 
@@ -26,8 +25,9 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.user.create({
-      data: { name: name.trim(), avatarColor: avatarColor || '#6C63FF', sessionToken, pairCode, recoveryCode },
+      data: { name: name.trim(), avatarColor: avatarColor || '#6C63FF', pairCode, recoveryCode },
     });
+    const sessionToken = await createSession(user.id);
 
     const res = NextResponse.json({ user: sanitizeUser(user), recoveryCode });
     res.cookies.set(SESSION_COOKIE, sessionToken, {

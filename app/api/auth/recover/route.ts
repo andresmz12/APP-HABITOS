@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { SESSION_COOKIE, generateSessionToken, sanitizeUser } from '@/lib/auth';
+import { SESSION_COOKIE, createSession, sanitizeUser } from '@/lib/auth';
 
 function normalize(code: string): string {
   return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Código inválido' }, { status: 404 });
     }
 
-    const sessionToken = generateSessionToken();
-    const updated = await prisma.user.update({ where: { id: user.id }, data: { sessionToken } });
+    // Adds a session for this device alongside any others already signed in —
+    // recovering on a new phone doesn't sign you out elsewhere.
+    const sessionToken = await createSession(user.id);
 
-    const res = NextResponse.json({ user: sanitizeUser(updated) });
+    const res = NextResponse.json({ user: sanitizeUser(user) });
     res.cookies.set(SESSION_COOKIE, sessionToken, {
       httpOnly: true,
       secure: true,

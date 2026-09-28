@@ -15,7 +15,6 @@ model Couple {
 
 model User {
   id                   String            @id @default(cuid())
-  sessionToken         String            @unique
   name                 String
   avatarColor          String            @default("#6C63FF")
   notificationEmail    String?
@@ -30,7 +29,19 @@ model User {
   weeklyTasks          WeeklyTask[]
   weeklyStats          WeeklyStat[]
   notes                CoupleNote[]
+  sessions             Session[]
   createdAt            DateTime          @default(now())
+}
+
+// One row per signed-in device — a user can have several at once.
+model Session {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device     String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 }
 
 model Habit {
