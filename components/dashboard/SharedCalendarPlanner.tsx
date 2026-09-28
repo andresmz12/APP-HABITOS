@@ -375,18 +375,17 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                   const hour = HOUR_START + hourIdx;
                   const rowStart = 3 + hourIdx * SUBROWS_PER_HOUR;
                   return (
-                    <div key={`label-${hour}`}>
-                      <span
-                        className="text-gray-600 font-medium block -translate-y-1/2 pr-0.5 md:pr-1.5 text-right leading-none"
-                        style={{
-                          gridColumn: 1,
-                          gridRow: `${rowStart} / span ${SUBROWS_PER_HOUR}`,
-                          fontSize: 'var(--hour-text)',
-                        }}
-                      >
-                        {formatHourLabel(hour)}
-                      </span>
-                    </div>
+                    <span
+                      key={`label-${hour}`}
+                      className="text-gray-600 font-medium block -translate-y-1/2 pr-0.5 md:pr-1.5 text-right leading-none"
+                      style={{
+                        gridColumn: 1,
+                        gridRow: `${rowStart} / span ${SUBROWS_PER_HOUR}`,
+                        fontSize: 'var(--hour-text)',
+                      }}
+                    >
+                      {formatHourLabel(hour)}
+                    </span>
                   );
                 })}
                 {Array.from({ length: TOTAL_HOURS }, (_, hourIdx) =>
