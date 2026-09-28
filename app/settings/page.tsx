@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
-import { updateProfile, logout, logoutAll, getRecoveryCode } from '@/lib/firebase/auth';
+import { updateProfile, logout, logoutAll, changePassword } from '@/lib/firebase/auth';
 import { User } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS } from '@/lib/utils/constants';
-import { Bell, BellOff, Pencil, Mail, Heart, LogOut, Copy, Check, KeyRound } from 'lucide-react';
+import { Bell, BellOff, Pencil, Mail, Heart, LogOut, Copy, Check, KeyRound, AtSign } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
 
@@ -21,9 +21,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
-  const [recoveryCopied, setRecoveryCopied] = useState(false);
-  const [loadingRecovery, setLoadingRecovery] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   useEffect(() => {
     if (!sessionLoading && !user) router.replace('/onboarding');
@@ -97,19 +95,6 @@ export default function SettingsPage() {
     router.push('/onboarding');
   }
 
-  async function handleShowRecoveryCode() {
-    if (recoveryCode) {
-      setRecoveryCode(null);
-      return;
-    }
-    setLoadingRecovery(true);
-    try {
-      const code = await getRecoveryCode();
-      setRecoveryCode(code);
-    } finally {
-      setLoadingRecovery(false);
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
@@ -133,6 +118,7 @@ export default function SettingsPage() {
               <Avatar color={user.avatarColor} name={user.name} size="lg" />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-black text-lg leading-tight truncate">{user.name}</p>
+                <p className="text-gray-500 text-xs mt-0.5">@{user.username}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   {user.notificationsEnabled && user.notificationEmail ? (
                     <>
@@ -193,33 +179,23 @@ export default function SettingsPage() {
           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
             Cuenta
           </p>
+          <div className="bg-[#1A1A24] rounded-2xl px-5 py-4 border border-white/5 flex items-center gap-3">
+            <AtSign size={16} className="text-violet-400 flex-shrink-0" />
+            <div>
+              <p className="text-gray-300 text-sm font-semibold">@{user.username}</p>
+              <p className="text-gray-600 text-xs mt-0.5">Úsalo con tu contraseña para entrar desde cualquier dispositivo</p>
+            </div>
+          </div>
           <button
-            onClick={handleShowRecoveryCode}
-            disabled={loadingRecovery}
+            onClick={() => setPasswordOpen(true)}
             className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"
           >
             <KeyRound size={16} className="text-violet-400" />
             <div>
-              <p className="text-gray-300 text-sm font-semibold">
-                {loadingRecovery ? 'Cargando...' : recoveryCode ? 'Ocultar código' : 'Ver código de recuperación'}
-              </p>
-              <p className="text-gray-600 text-xs mt-0.5">Úsalo para entrar desde otro celular</p>
+              <p className="text-gray-300 text-sm font-semibold">Cambiar contraseña</p>
+              <p className="text-gray-600 text-xs mt-0.5">Actualiza tu contraseña de acceso</p>
             </div>
           </button>
-          {recoveryCode && (
-            <button
-              onClick={() => {
-                navigator.clipboard?.writeText(recoveryCode).then(() => {
-                  setRecoveryCopied(true);
-                  setTimeout(() => setRecoveryCopied(false), 1500);
-                });
-              }}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
-            >
-              <span className="text-base font-black text-white tracking-widest">{recoveryCode}</span>
-              {recoveryCopied ? <Check size={16} className="text-green-400" /> : <Copy size={14} className="text-gray-500" />}
-            </button>
-          )}
           <button
             onClick={handleLogout}
             className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"
@@ -256,8 +232,88 @@ export default function SettingsPage() {
         />
       )}
 
+      {passwordOpen && (
+        <ChangePasswordModal onClose={() => setPasswordOpen(false)} />
+      )}
+
       <BottomNav />
     </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    setError('');
+    try {
+      await changePassword(currentPassword, newPassword);
+      setDone(true);
+    } catch (err) {
+      setError((err as Error).message || 'No se pudo cambiar la contraseña.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open title="Cambiar contraseña" onClose={onClose}>
+      <div className="space-y-5">
+        {done ? (
+          <div className="text-center space-y-4 py-4">
+            <p className="text-green-400 text-sm">¡Contraseña actualizada!</p>
+            <Button onClick={onClose} className="w-full">Listo</Button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+                Contraseña actual
+              </label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+                Nueva contraseña
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+            {error && (
+              <p className="text-red-400 text-sm text-center bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                {error}
+              </p>
+            )}
+            <div className="flex gap-3 pt-1">
+              <Button variant="secondary" onClick={onClose} className="flex-1">Cancelar</Button>
+              <Button
+                onClick={handleSave}
+                loading={saving}
+                disabled={!currentPassword || newPassword.length < 6}
+                className="flex-1"
+              >
+                Guardar
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }
 

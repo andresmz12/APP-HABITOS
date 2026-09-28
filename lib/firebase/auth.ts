@@ -34,39 +34,42 @@ export function subscribeToMe(callback: (data: MeResponse) => void): () => void 
   return () => { active = false; clearInterval(timer); };
 }
 
-export interface AuthResult {
-  user: User;
-  recoveryCode: string;
-}
-
-export async function createProfile(name: string, avatarColor: string): Promise<AuthResult> {
-  return apiFetch('/api/auth/create-profile', {
+export async function createProfile(
+  name: string,
+  avatarColor: string,
+  username: string,
+  password: string
+): Promise<User> {
+  const { user } = await apiFetch('/api/auth/create-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, avatarColor }),
-  });
-}
-
-export async function joinWithCode(name: string, avatarColor: string, pairCode: string): Promise<AuthResult> {
-  return apiFetch('/api/auth/join', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, avatarColor, pairCode }),
-  });
-}
-
-export async function recoverAccount(recoveryCode: string): Promise<User> {
-  const { user } = await apiFetch('/api/auth/recover', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recoveryCode }),
+    body: JSON.stringify({ name, avatarColor, username, password }),
   });
   return user;
 }
 
-export async function getRecoveryCode(): Promise<string> {
-  const { recoveryCode } = await apiFetch('/api/auth/recovery-code');
-  return recoveryCode;
+export async function joinWithCode(
+  name: string,
+  avatarColor: string,
+  username: string,
+  password: string,
+  pairCode: string
+): Promise<User> {
+  const { user } = await apiFetch('/api/auth/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, avatarColor, username, password, pairCode }),
+  });
+  return user;
+}
+
+export async function login(username: string, password: string): Promise<User> {
+  const { user } = await apiFetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  return user;
 }
 
 export async function updateProfile(
@@ -78,6 +81,14 @@ export async function updateProfile(
     body: JSON.stringify(data),
   });
   return user;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiFetch('/api/auth/change-password', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 }
 
 export async function logout(): Promise<void> {

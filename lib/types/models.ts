@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   name: string;
+  username: string;
   avatarColor: string;
   notificationEmail?: string | null;
   reminderTime: string; // "HH:mm"

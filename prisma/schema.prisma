@@ -16,12 +16,13 @@ model Couple {
 model User {
   id                   String            @id @default(cuid())
   name                 String
+  username             String            @unique
+  passwordHash         String
   avatarColor          String            @default("#6C63FF")
   notificationEmail    String?
   reminderTime         String            @default("20:00")
   notificationsEnabled Boolean           @default(false)
   pairCode             String?           @unique
-  recoveryCode         String?           @unique
   coupleId             String?
   couple               Couple?           @relation(fields: [coupleId], references: [id])
   habits               Habit[]

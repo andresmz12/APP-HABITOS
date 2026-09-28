@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { prisma } from './db';
 
 export const SESSION_COOKIE = 'session_token';
@@ -18,17 +19,16 @@ export function generatePairCode(): string {
   return code;
 }
 
-function formatGroups(code: string, groupSize: number): string {
-  return code.match(new RegExp(`.{1,${groupSize}}`, 'g'))!.join('-');
+export function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase().replace(/\s+/g, '');
 }
 
-// Longer than a pair code since it's a standing credential, not a one-time handoff.
-export function generateRecoveryCode(): string {
-  let raw = '';
-  for (let i = 0; i < 12; i++) {
-    raw += PAIR_CODE_CHARS[Math.floor(Math.random() * PAIR_CODE_CHARS.length)];
-  }
-  return formatGroups(raw, 4); // e.g. "AB3D-EFGH-2345"
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 // A user can be signed in on several devices at once — each one gets its own
@@ -54,10 +54,8 @@ export async function getPartner(coupleId: string | null, ownUserId: string) {
   return prisma.user.findFirst({ where: { coupleId, id: { not: ownUserId } } });
 }
 
-// Never send recoveryCode back in a response body by default — it's a
-// standing credential. Routes that intentionally reveal it (e.g. right after
-// generating it) do so via their own explicit field.
-export function sanitizeUser<T extends { recoveryCode?: string | null }>(user: T): Omit<T, 'recoveryCode'> {
-  const { recoveryCode: _recoveryCode, ...rest } = user;
+// Never send passwordHash back in a response body — it's a standing credential.
+export function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'passwordHash'> {
+  const { passwordHash: _passwordHash, ...rest } = user;
   return rest;
 }
