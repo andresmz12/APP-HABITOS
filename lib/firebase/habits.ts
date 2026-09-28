@@ -9,7 +9,6 @@ async function apiFetch(path: string, options?: RequestInit) {
 
 export interface HabitsSnapshot {
   habits: Habit[];
-  weeklyLimitReached: boolean;
   streak: number;
   weeklyPoints: number;
 }
@@ -23,9 +22,9 @@ export function subscribeToHabits(
   async function poll() {
     if (!active) return;
     try {
-      const { habits, weeklyLimitReached, streak, weeklyPoints } = await apiFetch('/api/habits');
+      const { habits, streak, weeklyPoints } = await apiFetch('/api/habits');
       if (active) {
-        callback({ habits: habits ?? [], weeklyLimitReached: !!weeklyLimitReached, streak: streak ?? 0, weeklyPoints: weeklyPoints ?? 0 });
+        callback({ habits: habits ?? [], streak: streak ?? 0, weeklyPoints: weeklyPoints ?? 0 });
       }
     } catch (err) {
       if (active) onError?.(err as Error);

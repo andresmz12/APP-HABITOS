@@ -13,10 +13,9 @@ interface HabitFormProps {
   open: boolean;
   onClose: () => void;
   editHabit?: Habit;
-  weeklyLimitReached?: boolean;
 }
 
-export function HabitForm({ open, onClose, editHabit, weeklyLimitReached }: HabitFormProps) {
+export function HabitForm({ open, onClose, editHabit }: HabitFormProps) {
   const isEdit = !!editHabit;
   const [name, setName] = useState(editHabit?.name ?? '');
   const [icon, setIcon] = useState(editHabit?.icon ?? '🏃');
@@ -228,13 +227,6 @@ export function HabitForm({ open, onClose, editHabit, weeklyLimitReached }: Habi
           </button>
         </div>
 
-        {/* Weekly limit notice */}
-        {!isEdit && weeklyLimitReached && (
-          <p className="text-amber-400 text-xs text-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-            Ya agregaste o duplicaste un hábito esta semana. Podrás agregar otro la próxima semana.
-          </p>
-        )}
-
         {error && (
           <p className="text-red-400 text-xs text-center bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
             {error}
@@ -261,8 +253,7 @@ export function HabitForm({ open, onClose, editHabit, weeklyLimitReached }: Habi
                 size="md"
                 onClick={handleDuplicate}
                 loading={duplicating}
-                disabled={weeklyLimitReached}
-                title={weeklyLimitReached ? 'Ya usaste tu duplicado/nuevo de esta semana' : 'Duplicar hábito'}
+                title="Duplicar hábito"
                 className="flex-shrink-0"
               >
                 <Copy size={14} />
@@ -283,7 +274,7 @@ export function HabitForm({ open, onClose, editHabit, weeklyLimitReached }: Habi
             variant="primary"
             size="md"
             loading={loading}
-            disabled={!name.trim() || (!isEdit && weeklyLimitReached)}
+            disabled={!name.trim()}
             className="flex-1"
           >
             {isEdit ? 'Guardar' : 'Agregar'}

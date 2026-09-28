@@ -31,7 +31,7 @@ export default function HomePage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editHabit, setEditHabit] = useState<Habit | null>(null);
 
-  const { habits, loading: habitsLoading, weeklyLimitReached, streak, weeklyPoints } = useHabits();
+  const { habits, loading: habitsLoading, streak, weeklyPoints } = useHabits();
   const { completions } = useTodayCompletions();
   const celebratedRef = useRef(false);
 
@@ -181,7 +181,6 @@ export default function HomePage() {
       <HabitForm
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        weeklyLimitReached={weeklyLimitReached}
       />
 
       {/* Edit habit modal — key forces remount when editing a different habit */}
@@ -190,7 +189,6 @@ export default function HomePage() {
         open={!!editHabit}
         onClose={() => setEditHabit(null)}
         editHabit={editHabit ?? undefined}
-        weeklyLimitReached={weeklyLimitReached}
       />
 
       <BottomNav />

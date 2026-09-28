@@ -8,7 +8,6 @@ export function useHabits() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [weeklyLimitReached, setWeeklyLimitReached] = useState(false);
   const [streak, setStreak] = useState(0);
   const [weeklyPoints, setWeeklyPoints] = useState(0);
 
@@ -17,7 +16,6 @@ export function useHabits() {
     const unsubscribe = subscribeToHabits(
       (data) => {
         setHabits(data.habits);
-        setWeeklyLimitReached(data.weeklyLimitReached);
         setStreak(data.streak);
         setWeeklyPoints(data.weeklyPoints);
         setLoading(false);
@@ -30,5 +28,5 @@ export function useHabits() {
     return unsubscribe;
   }, []);
 
-  return { habits, loading, error, weeklyLimitReached, streak, weeklyPoints };
+  return { habits, loading, error, streak, weeklyPoints };
 }
