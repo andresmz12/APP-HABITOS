@@ -202,6 +202,7 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
             key={tab.key}
             onClick={() => {
               if (tab.key === 'week') setWeekKey(getWeekKey(selectedDate));
+              if (tab.key === 'month') setMonthKey(getMonthKey(selectedDate));
               setView(tab.key);
             }}
             className={cn(

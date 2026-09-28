@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
               <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0F0F14; color: #fff; border-radius: 16px;">
                 <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px;">Hábitos en Pareja</h1>
                 <p style="color: #9ca3af; margin: 0 0 24px;">¡Hola ${u.name}! Es hora de revisar tus hábitos del día.</p>
-                <a href="https://app-habitos-production-5e3c.up.railway.app/home"
+                <a href="https://app-habitos-production-c120.up.railway.app/home"
                    style="display: block; text-align: center; background: ${u.avatarColor}; color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
                   Abrir la app →
                 </a>
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
                   ${habitNames.map((n) => `<li>${n}</li>`).join('')}
                 </ul>
               </div>
-              <a href="https://app-habitos-production-5e3c.up.railway.app/home"
+              <a href="https://app-habitos-production-c120.up.railway.app/home"
                  style="display: block; text-align: center; background: #6C63FF; color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
                 Abrir la app →
               </a>
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
               <div style="background: #1A1A24; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <p style="margin: 0; color: #e5e7eb; font-size: 16px;">${task.text}</p>
               </div>
-              <a href="https://app-habitos-production-5e3c.up.railway.app/home"
+              <a href="https://app-habitos-production-c120.up.railway.app/home"
                  style="display: block; text-align: center; background: #6C63FF; color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
                 Abrir la app →
               </a>
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
                   <strong style="color: ${partner.avatarColor}">${partner.name}</strong>: ${partnerPoints} pts · ${partnerStat?.totalCompletions ?? 0} hábitos completados
                 </p>` : ''}
               </div>
-              <a href="https://app-habitos-production-5e3c.up.railway.app/together"
+              <a href="https://app-habitos-production-c120.up.railway.app/together"
                  style="display: block; text-align: center; background: ${user.avatarColor}; color: white; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: bold; font-size: 16px;">
                 Ver el detalle →
               </a>

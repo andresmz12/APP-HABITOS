@@ -15,7 +15,14 @@ export async function PATCH(
     if (!existing || existing.userId !== user.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    const data = await req.json();
+    const body = await req.json();
+    const data: Record<string, unknown> = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.icon !== undefined) data.icon = body.icon;
+    if (body.frequencyType !== undefined) data.frequencyType = body.frequencyType;
+    if (body.frequencyDays !== undefined) data.frequencyDays = body.frequencyDays;
+    if (body.reminderEnabled !== undefined) data.reminderEnabled = !!body.reminderEnabled;
+    if (body.reminderTime !== undefined) data.reminderTime = body.reminderEnabled ? body.reminderTime : null;
     const habit = await prisma.habit.update({ where: { id }, data });
     return NextResponse.json({ habit });
   } catch {

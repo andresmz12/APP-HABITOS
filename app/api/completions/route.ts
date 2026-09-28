@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
     const weekKey = getCurrentWeekKey();
 
     const completion = await prisma.$transaction(async (tx) => {
+      const already = await tx.habitCompletion.findFirst({ where: { habitId, dateKey } });
+      if (already) return already;
+
       const c = await tx.habitCompletion.create({
         data: { habitId, userId: user.id, dateKey, weekKey, pointsEarned: 1, photoUrl: photoUrl ?? null },
       });
