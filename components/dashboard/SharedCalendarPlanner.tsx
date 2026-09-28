@@ -48,7 +48,6 @@ const HOUR_END = 23; // 11 PM (last labeled hour)
 const SUBROWS_PER_HOUR = 4; // 15-minute increments
 const TOTAL_HOURS = HOUR_END - HOUR_START + 1;
 const TOTAL_SUBROWS = TOTAL_HOURS * SUBROWS_PER_HOUR;
-const SUBROW_PX = 15;
 
 function formatHourLabel(hour: number): string {
   const period = hour >= 12 ? 'PM' : 'AM';
@@ -72,7 +71,7 @@ function TaskChip({
   return (
     <div
       className={cn(
-        'group/chip flex items-center gap-1 rounded px-1 py-[2px] text-left overflow-hidden',
+        'group/chip flex items-center gap-1 rounded px-1 py-[2px] md:px-1.5 md:py-[3px] text-left overflow-hidden',
         task.done && 'opacity-50'
       )}
       style={{ backgroundColor: `${color}26` }}
@@ -81,10 +80,10 @@ function TaskChip({
         onClick={() => isMine && setWeeklyTaskDone(task.id, !task.done)}
         disabled={!isMine}
         className={cn(
-          'text-[8px] leading-[11px] font-semibold truncate flex-1 min-w-0 text-left',
+          'font-semibold truncate flex-1 min-w-0 text-left leading-tight',
           task.done ? 'line-through text-gray-500' : ''
         )}
-        style={{ color: task.done ? undefined : color }}
+        style={{ color: task.done ? undefined : color, fontSize: 'var(--chip-text)' }}
         title={task.time ? `${task.time} ${task.text}` : task.text}
       >
         {showTime && task.time && <span className="tabular-nums mr-1">{task.time}</span>}
@@ -163,7 +162,15 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
   }, [view, weekDays, tasksByDay, monthKey]);
 
   return (
-    <div className="space-y-5">
+    <div
+      className={cn(
+        'space-y-5',
+        '[--cell-min:64px] [--chip-text:8px] [--daynum:20px] [--daynum-text:11px]',
+        '[--hourcol:28px] [--subrow:15px] [--hour-text:7px] [--block-text:9px] [--dayhead-text:9px] [--daynum2:24px]',
+        'md:[--cell-min:120px] md:[--chip-text:12px] md:[--daynum:30px] md:[--daynum-text:14px]',
+        'md:[--hourcol:64px] md:[--subrow:30px] md:[--hour-text:12px] md:[--block-text:13px] md:[--dayhead-text:12px] md:[--daynum2:34px]'
+      )}
+    >
       {/* Couple filter tabs */}
       {mode === 'couple' && participants && participants.length > 0 && (
         <div className="flex items-center gap-1.5 bg-[#13131b] rounded-xl p-1">
@@ -248,29 +255,31 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                     key={dateKey}
                     onClick={() => setSelectedDay(dateKey)}
                     className={cn(
-                      'flex flex-col items-stretch gap-0.5 min-h-[64px] p-1 border-t border-l border-white/[0.05] text-left',
+                      'flex flex-col items-stretch gap-0.5 p-1 md:p-1.5 border-t border-l border-white/[0.05] text-left',
                       (i + 1) % 7 === 0 && 'border-r',
                       isSelected && 'bg-violet-600/10'
                     )}
+                    style={{ minHeight: 'var(--cell-min)' }}
                   >
                     <span
                       className={cn(
-                        'text-[11px] font-semibold tabular-nums w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0',
+                        'font-semibold tabular-nums flex items-center justify-center rounded-full flex-shrink-0',
                         isToday
                           ? 'bg-violet-600 text-white'
                           : inMonth
                           ? 'text-gray-300'
                           : 'text-gray-700'
                       )}
+                      style={{ width: 'var(--daynum)', height: 'var(--daynum)', fontSize: 'var(--daynum-text)' }}
                     >
                       {day.getUTCDate()}
                     </span>
-                    <div className="space-y-0.5 min-w-0">
+                    <div className="space-y-0.5 md:space-y-1 min-w-0">
                       {visibleTasks.map((t) => (
                         <TaskChip key={t.id} task={t} viewerId={viewerId} showTime={false} />
                       ))}
                       {overflow > 0 && (
-                        <p className="text-[8px] text-gray-500 pl-1 font-medium">+{overflow} más</p>
+                        <p className="text-gray-500 pl-1 font-medium" style={{ fontSize: 'var(--chip-text)' }}>+{overflow} más</p>
                       )}
                     </div>
                   </button>
@@ -304,10 +313,10 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <div
-                className="grid w-full min-w-[290px]"
+                className="grid w-full min-w-[290px] md:min-w-[640px]"
                 style={{
-                  gridTemplateColumns: `28px repeat(7, minmax(0, 1fr))`,
-                  gridTemplateRows: `auto auto repeat(${TOTAL_SUBROWS}, ${SUBROW_PX}px)`,
+                  gridTemplateColumns: `var(--hourcol) repeat(7, minmax(0, 1fr))`,
+                  gridTemplateRows: `auto auto repeat(${TOTAL_SUBROWS}, var(--subrow))`,
                 }}
               >
                 {/* Day headers */}
@@ -319,17 +328,21 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                     <button
                       key={dateKey}
                       onClick={() => setSelectedDay(dateKey)}
-                      className="flex flex-col items-center justify-center gap-0.5 py-1.5 bg-white/[0.02] border-b border-l border-white/[0.06]"
+                      className="flex flex-col items-center justify-center gap-0.5 py-1.5 md:py-2.5 bg-white/[0.02] border-b border-l border-white/[0.06]"
                       style={{ gridColumn: i + 2, gridRow: 1 }}
                     >
-                      <span className={cn('text-[9px] font-bold uppercase', isToday ? 'text-violet-400' : 'text-gray-500')}>
+                      <span
+                        className={cn('font-bold uppercase', isToday ? 'text-violet-400' : 'text-gray-500')}
+                        style={{ fontSize: 'var(--dayhead-text)' }}
+                      >
                         {WEEKDAY_SHORT[day.getUTCDay()]}
                       </span>
                       <span
                         className={cn(
-                          'text-[12px] font-bold w-6 h-6 flex items-center justify-center rounded-full',
+                          'font-bold flex items-center justify-center rounded-full',
                           isToday ? 'bg-violet-600 text-white' : dateKey === selectedDay ? 'ring-1 ring-violet-500 text-white' : 'text-gray-300'
                         )}
+                        style={{ width: 'var(--daynum2)', height: 'var(--daynum2)', fontSize: 'var(--dayhead-text)' }}
                       >
                         {day.getUTCDate()}
                       </span>
@@ -362,8 +375,12 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                   return (
                     <div key={`label-${hour}`}>
                       <span
-                        className="text-[7px] text-gray-600 font-medium block -translate-y-1/2 pr-0.5 text-right leading-none"
-                        style={{ gridColumn: 1, gridRow: `${rowStart} / span ${SUBROWS_PER_HOUR}` }}
+                        className="text-gray-600 font-medium block -translate-y-1/2 pr-0.5 md:pr-1.5 text-right leading-none"
+                        style={{
+                          gridColumn: 1,
+                          gridRow: `${rowStart} / span ${SUBROWS_PER_HOUR}`,
+                          fontSize: 'var(--hour-text)',
+                        }}
                       >
                         {formatHourLabel(hour)}
                       </span>
@@ -396,7 +413,7 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                     return (
                       <div
                         key={t.id}
-                        className="relative mx-[1px] rounded-md px-1 py-0.5 cursor-pointer group/block"
+                        className="relative mx-[1px] md:mx-[2px] rounded-md px-1 py-0.5 md:px-1.5 md:py-1 cursor-pointer group/block"
                         style={{
                           gridColumn: dayIdx + 2,
                           gridRow: `${rowStart} / span ${Math.max(1, rowSpan)}`,
@@ -406,8 +423,8 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                         onClick={() => t.userId === viewerId && setWeeklyTaskDone(t.id, !t.done)}
                       >
                         <p
-                          className={cn('text-[9px] font-semibold leading-tight truncate', t.done && 'line-through text-gray-500')}
-                          style={{ color: t.done ? undefined : color }}
+                          className={cn('font-semibold leading-tight truncate', t.done && 'line-through text-gray-500')}
+                          style={{ color: t.done ? undefined : color, fontSize: 'var(--block-text)' }}
                         >
                           {t.time} {t.text}
                         </p>

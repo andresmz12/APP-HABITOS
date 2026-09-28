@@ -61,7 +61,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0B0B10] pb-28">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto">
         {/* Header */}
         <div
           className="px-5 pt-14 pb-6"
