@@ -43,6 +43,7 @@ export interface WeeklyTask {
   weekKey: string;
   dateKey: string;
   time?: string | null; // "HH:mm"
+  endTime?: string | null; // "HH:mm"
   text: string;
   done: boolean;
   seriesId?: string | null;

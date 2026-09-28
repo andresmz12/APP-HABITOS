@@ -55,6 +55,18 @@ function formatHourLabel(hour: number): string {
   return `${displayHour} ${period}`;
 }
 
+function formatTimeRange(task: Pick<WeeklyTask, 'time' | 'endTime'>): string {
+  if (!task.time) return '';
+  return task.endTime ? `${task.time} - ${task.endTime}` : task.time;
+}
+
+// Absolute 15-min subrow index since HOUR_START:00, clamped to the grid's visible range.
+function timeToSubrow(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  const rawMinutes = (h - HOUR_START) * 60 + (m || 0);
+  return Math.min(Math.max(Math.round(rawMinutes / 15), 0), TOTAL_SUBROWS);
+}
+
 function TaskChip({
   task,
   viewerId,
@@ -84,7 +96,7 @@ function TaskChip({
           task.done ? 'line-through text-gray-500' : ''
         )}
         style={{ color: task.done ? undefined : color, fontSize: 'var(--chip-text)' }}
-        title={task.time ? `${task.time} ${task.text}` : task.text}
+        title={task.time ? `${formatTimeRange(task)} ${task.text}` : task.text}
       >
         {showTime && task.time && <span className="tabular-nums mr-1">{task.time}</span>}
         {task.text}
@@ -407,10 +419,10 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                   const dateKey = getDayKey(day);
                   const timed = (tasksByDay.get(dateKey) ?? []).filter((t) => t.time);
                   return timed.map((t) => {
-                    const [h, m] = (t.time as string).split(':').map(Number);
-                    const clampedHour = Math.min(Math.max(h, HOUR_START), HOUR_END);
-                    const rowStart = 3 + (clampedHour - HOUR_START) * SUBROWS_PER_HOUR + Math.round((m || 0) / 15);
-                    const rowSpan = Math.min(3, 3 + TOTAL_SUBROWS - (rowStart - 2));
+                    const startSubrow = timeToSubrow(t.time as string);
+                    const endSubrow = t.endTime ? timeToSubrow(t.endTime) : startSubrow + 3;
+                    const rowStart = 3 + startSubrow;
+                    const rowSpan = Math.min(TOTAL_SUBROWS - startSubrow, Math.max(1, endSubrow - startSubrow));
                     const color = t.user?.avatarColor ?? '#8B85FF';
                     return (
                       <div
@@ -428,7 +440,7 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                           className={cn('font-semibold leading-tight truncate', t.done && 'line-through text-gray-500')}
                           style={{ color: t.done ? undefined : color, fontSize: 'var(--block-text)' }}
                         >
-                          {t.time} {t.text}
+                          {formatTimeRange(t)} {t.text}
                         </p>
                         {t.userId === viewerId && (
                           <button
@@ -526,9 +538,9 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                             </p>
                             <div className="flex items-center gap-2.5 mt-1">
                               {task.time && (
-                                <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+                                <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium tabular-nums">
                                   <Clock size={10} />
-                                  {task.time}
+                                  {formatTimeRange(task)}
                                 </span>
                               )}
                               {task.seriesId && (
@@ -583,16 +595,23 @@ function AddTaskModal({
 }) {
   const [text, setText] = useState('');
   const [time, setTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [repeat, setRepeat] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const timeRangeInvalid = !!time && !!endTime && endTime <= time;
 
   async function handleAdd() {
-    if (!text.trim()) return;
+    if (!text.trim() || timeRangeInvalid) return;
     setSaving(true);
+    setError('');
     try {
-      await createWeeklyTask(dateKey, text.trim(), time, repeat ? repeatWeeks : 1);
+      await createWeeklyTask(dateKey, text.trim(), time, repeat ? repeatWeeks : 1, time ? endTime : '');
       onClose();
+    } catch (err) {
+      setError((err as Error).message || 'No se pudo agregar el pendiente.');
     } finally {
       setSaving(false);
     }
@@ -642,15 +661,34 @@ function AddTaskModal({
             className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
           />
 
-          <div>
-            <label className="text-xs font-medium text-gray-400 mb-2 block">Hora (opcional)</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-400 mb-2 block">Hora de inicio</label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => {
+                  setTime(e.target.value);
+                  if (!e.target.value) setEndTime('');
+                }}
+                className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-400 mb-2 block">Hora de fin</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={!time}
+                className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all disabled:opacity-40"
+              />
+            </div>
           </div>
+
+          {timeRangeInvalid && (
+            <p className="text-red-400 text-xs -mt-2">La hora de fin debe ser después de la hora de inicio.</p>
+          )}
 
           <div className="bg-[#22223A] rounded-xl px-4 py-3 space-y-3">
             <button
@@ -695,6 +733,8 @@ function AddTaskModal({
             )}
           </div>
 
+          {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+
           <div className="flex gap-3 pt-1">
             <button
               onClick={onClose}
@@ -704,7 +744,7 @@ function AddTaskModal({
             </button>
             <button
               onClick={handleAdd}
-              disabled={!text.trim() || saving}
+              disabled={!text.trim() || saving || timeRangeInvalid}
               className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-semibold disabled:opacity-40"
             >
               {saving ? '...' : 'Agregar'}

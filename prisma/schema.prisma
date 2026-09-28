@@ -80,6 +80,7 @@ model WeeklyTask {
   weekKey   String
   dateKey   String
   time      String?
+  endTime   String?
   text      String
   done      Boolean  @default(false)
   seriesId  String?

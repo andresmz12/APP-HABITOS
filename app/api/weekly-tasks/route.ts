@@ -35,12 +35,15 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   try {
-    const { dateKey, time, text, repeatWeeks } = await req.json();
+    const { dateKey, time, endTime, text, repeatWeeks } = await req.json();
     if (!text?.trim()) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
     if (!dateKey) {
       return NextResponse.json({ error: 'dateKey is required' }, { status: 400 });
+    }
+    if (time && endTime && endTime <= time) {
+      return NextResponse.json({ error: 'La hora de fin debe ser después de la hora de inicio' }, { status: 400 });
     }
 
     const weeks = Math.min(Math.max(Number(repeatWeeks) || 1, 1), 26); // cap at ~6 months
@@ -55,6 +58,7 @@ export async function POST(req: NextRequest) {
         weekKey: getWeekKey(occurrenceDate),
         dateKey: occurrenceDateKey,
         time: time || null,
+        endTime: time && endTime ? endTime : null,
         text: text.trim(),
         seriesId,
       };

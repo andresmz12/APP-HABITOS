@@ -32,12 +32,13 @@ export async function createWeeklyTask(
   dateKey: string,
   text: string,
   time?: string,
-  repeatWeeks?: number
+  repeatWeeks?: number,
+  endTime?: string
 ): Promise<string> {
   const { task } = await apiFetch('/api/weekly-tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dateKey, text, time: time || null, repeatWeeks }),
+    body: JSON.stringify({ dateKey, text, time: time || null, endTime: endTime || null, repeatWeeks }),
   });
   return task.id;
 }
