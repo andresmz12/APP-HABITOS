@@ -11,7 +11,13 @@ import {
   getCurrentMonthKey,
   getPrevMonthKey,
   getNextMonthKey,
+  getMonthKey,
   formatMonthLabel,
+  getWeekKey,
+  getCurrentWeekKey,
+  getWeekDays,
+  getPrevWeekKey,
+  getNextWeekKey,
 } from '@/lib/utils/dates';
 import { createWeeklyTask, deleteWeeklyTask, setWeeklyTaskDone } from '@/lib/firebase/weeklyTasks';
 import { useMonthTasks } from '@/lib/hooks/useWeeklyTasks';
@@ -37,13 +43,88 @@ interface SharedCalendarPlannerProps {
   participants?: Participant[];
 }
 
+const HOUR_START = 5; // 5 AM
+const HOUR_END = 23; // 11 PM (last labeled hour)
+const SUBROWS_PER_HOUR = 4; // 15-minute increments
+const TOTAL_HOURS = HOUR_END - HOUR_START + 1;
+const TOTAL_SUBROWS = TOTAL_HOURS * SUBROWS_PER_HOUR;
+const SUBROW_PX = 15;
+
+function formatHourLabel(hour: number): string {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${displayHour} ${period}`;
+}
+
+function TaskChip({
+  task,
+  viewerId,
+  showTime = true,
+  showDelete = false,
+}: {
+  task: WeeklyTask;
+  viewerId: string;
+  showTime?: boolean;
+  showDelete?: boolean;
+}) {
+  const isMine = task.userId === viewerId;
+  const color = task.user?.avatarColor ?? '#8B85FF';
+  return (
+    <div
+      className={cn(
+        'group/chip flex items-center gap-1 rounded px-1 py-[2px] text-left overflow-hidden',
+        task.done && 'opacity-50'
+      )}
+      style={{ backgroundColor: `${color}26` }}
+    >
+      <button
+        onClick={() => isMine && setWeeklyTaskDone(task.id, !task.done)}
+        disabled={!isMine}
+        className={cn(
+          'text-[8px] leading-[11px] font-semibold truncate flex-1 min-w-0 text-left',
+          task.done ? 'line-through text-gray-500' : ''
+        )}
+        style={{ color: task.done ? undefined : color }}
+        title={task.time ? `${task.time} ${task.text}` : task.text}
+      >
+        {showTime && task.time && <span className="tabular-nums mr-1">{task.time}</span>}
+        {task.text}
+      </button>
+      {isMine && showDelete && (
+        <button
+          onClick={() => deleteWeeklyTask(task.id)}
+          className="text-gray-500 hover:text-red-400 flex-shrink-0"
+        >
+          <X size={10} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function SharedCalendarPlanner({ viewerId, mode = 'personal', participants }: SharedCalendarPlannerProps) {
+  const [view, setView] = useState<'month' | 'week'>('month');
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey());
-  const { tasks: allTasks } = useMonthTasks(monthKey);
+  const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
   const todayKey = getCurrentDayKey();
   const [selectedDay, setSelectedDay] = useState(todayKey);
   const [addOpen, setAddOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'mine' | 'partner'>('all');
+
+  const weekDays = useMemo(() => getWeekDays(weekKey), [weekKey]);
+  const weekStartMonth = getMonthKey(weekDays[0]);
+  const weekEndMonth = getMonthKey(weekDays[6]);
+
+  const { tasks: monthTasksA } = useMonthTasks(view === 'month' ? monthKey : weekStartMonth);
+  const { tasks: monthTasksB } = useMonthTasks(weekEndMonth);
+
+  const allTasks = useMemo(() => {
+    if (view === 'month' || weekStartMonth === weekEndMonth) return monthTasksA;
+    const map = new Map<string, WeeklyTask>();
+    for (const t of monthTasksA) map.set(t.id, t);
+    for (const t of monthTasksB) map.set(t.id, t);
+    return Array.from(map.values());
+  }, [view, weekStartMonth, weekEndMonth, monthTasksA, monthTasksB]);
 
   const partner = participants?.find((p) => p.id !== viewerId);
 
@@ -54,7 +135,7 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
     return allTasks;
   }, [allTasks, mode, filter, viewerId]);
 
-  const days = useMemo(() => getMonthGridDays(monthKey), [monthKey]);
+  const monthDays = useMemo(() => getMonthGridDays(monthKey), [monthKey]);
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, WeeklyTask[]>();
@@ -63,12 +144,23 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
       list.push(t);
       map.set(t.dateKey, list);
     }
+    for (const list of map.values()) {
+      list.sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
+    }
     return map;
   }, [tasks]);
 
-  const agendaDays = useMemo(() => Array.from(tasksByDay.keys()).sort(), [tasksByDay]);
   const currentMonthNum = Number(monthKey.split('-')[1]);
   const selectedDate = new Date(selectedDay + 'T00:00:00Z');
+
+  const agendaDays = useMemo(() => {
+    if (view === 'week') {
+      return weekDays.map(getDayKey).filter((k) => (tasksByDay.get(k) ?? []).length > 0);
+    }
+    return Array.from(tasksByDay.keys())
+      .filter((k) => k.startsWith(monthKey))
+      .sort();
+  }, [view, weekDays, tasksByDay, monthKey]);
 
   return (
     <div className="space-y-5">
@@ -94,74 +186,251 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
         </div>
       )}
 
-      {/* Month header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setMonthKey(getPrevMonthKey(monthKey))}
-          className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
-        >
-          <ChevronLeft size={15} />
-        </button>
-        <p className="text-[15px] font-bold text-white capitalize tracking-tight">{formatMonthLabel(monthKey)}</p>
-        <button
-          onClick={() => setMonthKey(getNextMonthKey(monthKey))}
-          className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
-        >
-          <ChevronRight size={15} />
-        </button>
+      {/* View toggle */}
+      <div className="flex items-center gap-1.5 bg-[#13131b] rounded-xl p-1 w-fit mx-auto">
+        {([{ key: 'month' as const, label: 'Mes' }, { key: 'week' as const, label: 'Semana' }]).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => {
+              if (tab.key === 'week') setWeekKey(getWeekKey(selectedDate));
+              setView(tab.key);
+            }}
+            className={cn(
+              'px-5 py-1.5 rounded-lg text-xs font-semibold transition-all',
+              view === tab.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-gray-500 hover:text-gray-300'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Month grid — fixed-size circular day cells, safe at any viewport width */}
-      <div className="max-w-[340px] mx-auto w-full">
-        <div className="grid grid-cols-7 mb-1">
-          {DAY_LABELS.map((label, i) => (
-            <div key={i} className="text-center text-[10px] font-bold text-gray-600 pb-2 tracking-wide">
-              {label}
+      {view === 'month' ? (
+        <>
+          {/* Month header */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setMonthKey(getPrevMonthKey(monthKey))}
+              className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <p className="text-[15px] font-bold text-white capitalize tracking-tight">{formatMonthLabel(monthKey)}</p>
+            <button
+              onClick={() => setMonthKey(getNextMonthKey(monthKey))}
+              className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {/* Month grid — Google Calendar style, tasks shown inline in each day cell */}
+          <div className="w-full border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="grid grid-cols-7 bg-white/[0.02]">
+              {DAY_LABELS.map((label, i) => (
+                <div key={i} className="text-center text-[10px] font-bold text-gray-600 py-2 tracking-wide">
+                  {label}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-y-1.5">
-          {days.map((day) => {
-            const dateKey = getDayKey(day);
-            const inMonth = day.getUTCMonth() + 1 === currentMonthNum;
-            const isToday = dateKey === todayKey;
-            const isSelected = dateKey === selectedDay;
-            const dayTasks = tasksByDay.get(dateKey) ?? [];
+            <div className="grid grid-cols-7">
+              {monthDays.map((day, i) => {
+                const dateKey = getDayKey(day);
+                const inMonth = day.getUTCMonth() + 1 === currentMonthNum;
+                const isToday = dateKey === todayKey;
+                const isSelected = dateKey === selectedDay;
+                const dayTasks = tasksByDay.get(dateKey) ?? [];
+                const visibleTasks = dayTasks.slice(0, 2);
+                const overflow = dayTasks.length - visibleTasks.length;
 
-            return (
-              <button
-                key={dateKey}
-                onClick={() => setSelectedDay(dateKey)}
-                className="flex flex-col items-center justify-center gap-1 py-0.5"
-              >
-                <div
-                  className={cn(
-                    'w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold tabular-nums transition-all',
-                    isSelected
-                      ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-600/30 scale-105'
-                      : isToday
-                      ? 'bg-violet-600/15 text-violet-300 ring-1 ring-inset ring-violet-500/60'
-                      : inMonth
-                      ? 'text-gray-300 hover:bg-white/[0.06]'
-                      : 'text-gray-800'
-                  )}
-                >
-                  {day.getUTCDate()}
-                </div>
-                <div className="h-1.5 flex items-center justify-center gap-0.5">
-                  {dayTasks.slice(0, 3).map((t) => (
+                return (
+                  <button
+                    key={dateKey}
+                    onClick={() => setSelectedDay(dateKey)}
+                    className={cn(
+                      'flex flex-col items-stretch gap-0.5 min-h-[64px] p-1 border-t border-l border-white/[0.05] text-left',
+                      (i + 1) % 7 === 0 && 'border-r',
+                      isSelected && 'bg-violet-600/10'
+                    )}
+                  >
                     <span
-                      key={t.id}
-                      className="w-1 h-1 rounded-full"
-                      style={{ backgroundColor: isSelected ? '#fff' : t.user?.avatarColor ?? '#8B85FF' }}
+                      className={cn(
+                        'text-[11px] font-semibold tabular-nums w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0',
+                        isToday
+                          ? 'bg-violet-600 text-white'
+                          : inMonth
+                          ? 'text-gray-300'
+                          : 'text-gray-700'
+                      )}
+                    >
+                      {day.getUTCDate()}
+                    </span>
+                    <div className="space-y-0.5 min-w-0">
+                      {visibleTasks.map((t) => (
+                        <TaskChip key={t.id} task={t} viewerId={viewerId} showTime={false} />
+                      ))}
+                      {overflow > 0 && (
+                        <p className="text-[8px] text-gray-500 pl-1 font-medium">+{overflow} más</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Week header */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setWeekKey(getPrevWeekKey(weekKey))}
+              className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <p className="text-[13px] font-bold text-white capitalize tracking-tight">
+              {MONTH_SHORT[weekDays[0].getUTCMonth()]} {weekDays[0].getUTCDate()} – {MONTH_SHORT[weekDays[6].getUTCMonth()]} {weekDays[6].getUTCDate()}, {weekDays[6].getUTCFullYear()}
+            </p>
+            <button
+              onClick={() => setWeekKey(getNextWeekKey(weekKey))}
+              className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors active:scale-90 flex-shrink-0"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {/* Week grid — hourly, Google Calendar style */}
+          <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <div
+                className="grid w-full min-w-[290px]"
+                style={{
+                  gridTemplateColumns: `28px repeat(7, minmax(0, 1fr))`,
+                  gridTemplateRows: `auto auto repeat(${TOTAL_SUBROWS}, ${SUBROW_PX}px)`,
+                }}
+              >
+                {/* Day headers */}
+                <div className="bg-white/[0.02] border-b border-white/[0.06]" style={{ gridColumn: 1, gridRow: 1 }} />
+                {weekDays.map((day, i) => {
+                  const dateKey = getDayKey(day);
+                  const isToday = dateKey === todayKey;
+                  return (
+                    <button
+                      key={dateKey}
+                      onClick={() => setSelectedDay(dateKey)}
+                      className="flex flex-col items-center justify-center gap-0.5 py-1.5 bg-white/[0.02] border-b border-l border-white/[0.06]"
+                      style={{ gridColumn: i + 2, gridRow: 1 }}
+                    >
+                      <span className={cn('text-[9px] font-bold uppercase', isToday ? 'text-violet-400' : 'text-gray-500')}>
+                        {WEEKDAY_SHORT[day.getUTCDay()]}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-[12px] font-bold w-6 h-6 flex items-center justify-center rounded-full',
+                          isToday ? 'bg-violet-600 text-white' : dateKey === selectedDay ? 'ring-1 ring-violet-500 text-white' : 'text-gray-300'
+                        )}
+                      >
+                        {day.getUTCDate()}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {/* Untimed tasks strip */}
+                <div className="bg-white/[0.02] border-b border-white/[0.06]" style={{ gridColumn: 1, gridRow: 2 }} />
+                {weekDays.map((day, i) => {
+                  const dateKey = getDayKey(day);
+                  const untimed = (tasksByDay.get(dateKey) ?? []).filter((t) => !t.time);
+                  return (
+                    <div
+                      key={dateKey}
+                      className="border-b border-l border-white/[0.06] bg-white/[0.02] p-0.5 space-y-0.5 min-h-[4px]"
+                      style={{ gridColumn: i + 2, gridRow: 2 }}
+                    >
+                      {untimed.map((t) => (
+                        <TaskChip key={t.id} task={t} viewerId={viewerId} showDelete />
+                      ))}
+                    </div>
+                  );
+                })}
+
+                {/* Hour labels + gridlines */}
+                {Array.from({ length: TOTAL_HOURS }, (_, hourIdx) => {
+                  const hour = HOUR_START + hourIdx;
+                  const rowStart = 3 + hourIdx * SUBROWS_PER_HOUR;
+                  return (
+                    <div key={`label-${hour}`}>
+                      <span
+                        className="text-[7px] text-gray-600 font-medium block -translate-y-1/2 pr-0.5 text-right leading-none"
+                        style={{ gridColumn: 1, gridRow: `${rowStart} / span ${SUBROWS_PER_HOUR}` }}
+                      >
+                        {formatHourLabel(hour)}
+                      </span>
+                    </div>
+                  );
+                })}
+                {Array.from({ length: TOTAL_HOURS }, (_, hourIdx) =>
+                  weekDays.map((_, dayIdx) => (
+                    <div
+                      key={`line-${hourIdx}-${dayIdx}`}
+                      className="border-t border-l border-white/[0.05]"
+                      style={{
+                        gridColumn: dayIdx + 2,
+                        gridRow: `${3 + hourIdx * SUBROWS_PER_HOUR} / span ${SUBROWS_PER_HOUR}`,
+                      }}
                     />
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                  ))
+                )}
+
+                {/* Timed tasks positioned by hour/minute */}
+                {weekDays.map((day, dayIdx) => {
+                  const dateKey = getDayKey(day);
+                  const timed = (tasksByDay.get(dateKey) ?? []).filter((t) => t.time);
+                  return timed.map((t) => {
+                    const [h, m] = (t.time as string).split(':').map(Number);
+                    const clampedHour = Math.min(Math.max(h, HOUR_START), HOUR_END);
+                    const rowStart = 3 + (clampedHour - HOUR_START) * SUBROWS_PER_HOUR + Math.round((m || 0) / 15);
+                    const rowSpan = Math.min(3, 3 + TOTAL_SUBROWS - (rowStart - 2));
+                    const color = t.user?.avatarColor ?? '#8B85FF';
+                    return (
+                      <div
+                        key={t.id}
+                        className="relative mx-[1px] rounded-md px-1 py-0.5 cursor-pointer group/block"
+                        style={{
+                          gridColumn: dayIdx + 2,
+                          gridRow: `${rowStart} / span ${Math.max(1, rowSpan)}`,
+                          backgroundColor: `${color}33`,
+                          borderLeft: `2px solid ${color}`,
+                        }}
+                        onClick={() => t.userId === viewerId && setWeeklyTaskDone(t.id, !t.done)}
+                      >
+                        <p
+                          className={cn('text-[9px] font-semibold leading-tight truncate', t.done && 'line-through text-gray-500')}
+                          style={{ color: t.done ? undefined : color }}
+                        >
+                          {t.time} {t.text}
+                        </p>
+                        {t.userId === viewerId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteWeeklyTask(t.id);
+                            }}
+                            className="absolute top-0 right-0 text-gray-400 hover:text-red-400 opacity-0 group-hover/block:opacity-100 transition-opacity"
+                          >
+                            <X size={10} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  });
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Add button for the selected day */}
       <button
@@ -172,16 +441,18 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
         Agregar para {WEEKDAY_SHORT[selectedDate.getUTCDay()]} {selectedDate.getUTCDate()}
       </button>
 
-      {/* Agenda list — every day this month with pending items, in order */}
+      {/* Agenda list */}
       <div>
         <div className="flex items-center gap-1.5 mb-3">
           <CalendarDays size={12} className="text-gray-600" />
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Agenda del mes</p>
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+            {view === 'week' ? 'Agenda de la semana' : 'Agenda del mes'}
+          </p>
         </div>
 
         {agendaDays.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-600 text-sm">Sin pendientes este mes</p>
+            <p className="text-gray-600 text-sm">Sin pendientes {view === 'week' ? 'esta semana' : 'este mes'}</p>
           </div>
         ) : (
           <div className="space-y-3">
