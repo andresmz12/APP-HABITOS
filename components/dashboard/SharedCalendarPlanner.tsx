@@ -167,8 +167,10 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
         'space-y-5',
         '[--cell-min:64px] [--chip-text:8px] [--daynum:20px] [--daynum-text:11px]',
         '[--hourcol:28px] [--subrow:15px] [--hour-text:7px] [--block-text:9px] [--dayhead-text:9px] [--daynum2:24px]',
-        'md:[--cell-min:120px] md:[--chip-text:12px] md:[--daynum:30px] md:[--daynum-text:14px]',
-        'md:[--hourcol:64px] md:[--subrow:30px] md:[--hour-text:12px] md:[--block-text:13px] md:[--dayhead-text:12px] md:[--daynum2:34px]'
+        'md:[--cell-min:110px] md:[--chip-text:11px] md:[--daynum:28px] md:[--daynum-text:13px]',
+        'md:[--hourcol:52px] md:[--subrow:24px] md:[--hour-text:11px] md:[--block-text:12px] md:[--dayhead-text:11px] md:[--daynum2:30px]',
+        'lg:[--cell-min:130px] lg:[--chip-text:13px] lg:[--daynum:32px] lg:[--daynum-text:15px]',
+        'lg:[--hourcol:60px] lg:[--subrow:26px] lg:[--hour-text:12px] lg:[--block-text:13px] lg:[--dayhead-text:12px] lg:[--daynum2:36px]'
       )}
     >
       {/* Couple filter tabs */}

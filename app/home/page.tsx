@@ -61,7 +61,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0B0B10] pb-28">
-      <div className="max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto">
+      <div className="max-w-lg lg:max-w-2xl mx-auto">
         {/* Header */}
         <div
           className="px-5 pt-14 pb-6"
@@ -160,38 +160,38 @@ export default function HomePage() {
             <AchievementsPanel />
           </Card>
         </div>
-
-        {/* Personal plan calendar */}
-        <div className="px-5 mt-4">
-          <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
-            <div>
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">
-                Mi calendario
-              </p>
-              <p className="text-gray-600 text-xs mt-0.5">
-                Anota lo que debes hacer cada día
-              </p>
-            </div>
-            <SharedCalendarPlanner viewerId={user.id} mode="personal" />
-          </Card>
-        </div>
-
-        {/* Add habit modal */}
-        <HabitForm
-          open={addOpen}
-          onClose={() => setAddOpen(false)}
-          weeklyLimitReached={weeklyLimitReached}
-        />
-
-        {/* Edit habit modal — key forces remount when editing a different habit */}
-        <HabitForm
-          key={editHabit?.id ?? 'edit'}
-          open={!!editHabit}
-          onClose={() => setEditHabit(null)}
-          editHabit={editHabit ?? undefined}
-          weeklyLimitReached={weeklyLimitReached}
-        />
       </div>
+
+      {/* Personal plan calendar — breaks out wider on desktop */}
+      <div className="max-w-lg lg:max-w-4xl xl:max-w-6xl mx-auto px-5 mt-4">
+        <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
+          <div>
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">
+              Mi calendario
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">
+              Anota lo que debes hacer cada día
+            </p>
+          </div>
+          <SharedCalendarPlanner viewerId={user.id} mode="personal" />
+        </Card>
+      </div>
+
+      {/* Add habit modal */}
+      <HabitForm
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        weeklyLimitReached={weeklyLimitReached}
+      />
+
+      {/* Edit habit modal — key forces remount when editing a different habit */}
+      <HabitForm
+        key={editHabit?.id ?? 'edit'}
+        open={!!editHabit}
+        onClose={() => setEditHabit(null)}
+        editHabit={editHabit ?? undefined}
+        weeklyLimitReached={weeklyLimitReached}
+      />
 
       <BottomNav />
     </div>

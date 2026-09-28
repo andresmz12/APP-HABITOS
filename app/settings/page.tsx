@@ -98,7 +98,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
-      <div className="max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto px-4 pt-12 pb-4 space-y-5">
+      <div className="max-w-lg lg:max-w-2xl mx-auto px-4 pt-12 pb-4 space-y-5">
         <h1 className="text-white text-2xl font-black">Ajustes</h1>
 
         {/* My profile card */}

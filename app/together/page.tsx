@@ -63,7 +63,7 @@ export default function TogetherPage() {
 
   return (
     <div className="min-h-screen bg-[#0F0F14] pb-24">
-      <div className="max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto">
+      <div className="max-w-lg lg:max-w-2xl mx-auto">
         {/* Header with dual-partner gradient */}
         <div
           className="px-4 pt-12 pb-5"
@@ -155,42 +155,46 @@ export default function TogetherPage() {
               ))}
             </Card>
           )}
+        </div>
+      </div>
 
-          {/* Combined plan calendar with per-person filter */}
-          {me && (
-            <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  Calendario de la pareja
-                </p>
-                <p className="text-gray-600 text-xs mt-0.5">
-                  Vean lo que cada uno tiene, juntos o por separado
-                </p>
-              </div>
-              <SharedCalendarPlanner
-                viewerId={user.id}
-                mode="couple"
-                participants={[
-                  { id: user.id, name: user.name, avatarColor: user.avatarColor },
-                  ...(partner ? [{ id: partner.user.id, name: partner.user.name, avatarColor: partner.user.avatarColor }] : []),
-                ]}
-              />
-            </Card>
-          )}
-
-          {/* Notes for each other */}
-          <Card className="space-y-3">
+      {/* Combined plan calendar with per-person filter — breaks out wider on desktop */}
+      {me && (
+        <div className="max-w-lg lg:max-w-4xl xl:max-w-6xl mx-auto px-4 mt-4">
+          <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
             <div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                Notas
+                Calendario de la pareja
               </p>
               <p className="text-gray-600 text-xs mt-0.5">
-                Déjense mensajitos cortos
+                Vean lo que cada uno tiene, juntos o por separado
               </p>
             </div>
-            <CoupleNotes viewerId={user.id} />
+            <SharedCalendarPlanner
+              viewerId={user.id}
+              mode="couple"
+              participants={[
+                { id: user.id, name: user.name, avatarColor: user.avatarColor },
+                ...(partner ? [{ id: partner.user.id, name: partner.user.name, avatarColor: partner.user.avatarColor }] : []),
+              ]}
+            />
           </Card>
         </div>
+      )}
+
+      <div className="max-w-lg lg:max-w-2xl mx-auto px-4 mt-4">
+        {/* Notes for each other */}
+        <Card className="space-y-3">
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Notas
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">
+              Déjense mensajitos cortos
+            </p>
+          </div>
+          <CoupleNotes viewerId={user.id} />
+        </Card>
       </div>
 
       <BottomNav />
