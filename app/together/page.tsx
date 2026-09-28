@@ -7,6 +7,8 @@ import { getCurrentWeekKey, formatWeekRange, getPrevWeekKey, getNextWeekKey } fr
 import { CoupleScoreboard } from '@/components/dashboard/CoupleScoreboard';
 import { WeeklyCalendar } from '@/components/dashboard/WeeklyCalendar';
 import { SharedCalendarPlanner } from '@/components/dashboard/SharedCalendarPlanner';
+import { PointsTrend } from '@/components/dashboard/PointsTrend';
+import { CoupleNotes } from '@/components/dashboard/CoupleNotes';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Card } from '@/components/ui/Card';
 import { Calendar, Heart, ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
@@ -113,6 +115,20 @@ export default function TogetherPage() {
             <CoupleScoreboard me={me} partner={partner} />
           )}
 
+          {/* Points trend over recent weeks */}
+          {summary?.trend && summary.trend.length > 0 && (
+            <Card className="space-y-3">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Últimas semanas
+              </p>
+              <PointsTrend
+                trend={summary.trend}
+                myColor={user.avatarColor}
+                partnerColor={partner?.user.avatarColor}
+              />
+            </Card>
+          )}
+
           {/* Weekly calendar per person */}
           {me && (
             <Card className="space-y-5">
@@ -161,6 +177,19 @@ export default function TogetherPage() {
               />
             </Card>
           )}
+
+          {/* Notes for each other */}
+          <Card className="space-y-3">
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Notas
+              </p>
+              <p className="text-gray-600 text-xs mt-0.5">
+                Déjense mensajitos cortos
+              </p>
+            </div>
+            <CoupleNotes viewerId={user.id} />
+          </Card>
         </div>
       </div>
 

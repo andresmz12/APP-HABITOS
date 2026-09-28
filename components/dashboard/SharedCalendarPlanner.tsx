@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, ChevronLeft, ChevronRight, Clock, CalendarDays } from 'lucide-react';
+import { Plus, X, ChevronLeft, ChevronRight, Clock, CalendarDays, Check, Repeat } from 'lucide-react';
 import { WeeklyTask } from '@/lib/types/models';
 import {
   getMonthGridDays,
@@ -13,7 +13,7 @@ import {
   getNextMonthKey,
   formatMonthLabel,
 } from '@/lib/utils/dates';
-import { createWeeklyTask, deleteWeeklyTask } from '@/lib/firebase/weeklyTasks';
+import { createWeeklyTask, deleteWeeklyTask, setWeeklyTaskDone } from '@/lib/firebase/weeklyTasks';
 import { useMonthTasks } from '@/lib/hooks/useWeeklyTasks';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
@@ -209,37 +209,60 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
 
                   {/* Tasks for that day */}
                   <div className="flex-1 min-w-0 space-y-1.5 pt-1">
-                    {dayTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="group flex items-start gap-2.5 bg-[#1A1A24] hover:bg-[#1e1e2a] rounded-2xl px-3.5 py-3 transition-colors"
-                        style={{ borderLeft: `2.5px solid ${task.user?.avatarColor ?? '#6C63FF'}` }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-100 text-sm break-words leading-snug font-medium">{task.text}</p>
-                          <div className="flex items-center gap-2.5 mt-1">
-                            {task.time && (
-                              <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
-                                <Clock size={10} />
-                                {task.time}
-                              </span>
-                            )}
-                            {mode === 'couple' && task.user && (
-                              <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                                <Avatar color={task.user.avatarColor} name={task.user.name} size="sm" className="!w-4 !h-4 !text-[8px]" />
-                                {task.user.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => deleteWeeklyTask(task.id)}
-                          className="text-gray-700 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                    {dayTasks.map((task) => {
+                      const isMine = task.userId === viewerId;
+                      return (
+                        <div
+                          key={task.id}
+                          className={cn(
+                            'group flex items-start gap-2.5 bg-[#1A1A24] hover:bg-[#1e1e2a] rounded-2xl px-3.5 py-3 transition-colors',
+                            task.done && 'opacity-50'
+                          )}
+                          style={{ borderLeft: `2.5px solid ${task.user?.avatarColor ?? '#6C63FF'}` }}
                         >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+                          <button
+                            onClick={() => isMine && setWeeklyTaskDone(task.id, !task.done)}
+                            disabled={!isMine}
+                            className={cn(
+                              'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors',
+                              task.done ? 'bg-green-500 border-green-500' : 'border-gray-600'
+                            )}
+                          >
+                            {task.done && <Check size={11} color="white" strokeWidth={3} />}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-sm break-words leading-snug font-medium', task.done ? 'text-gray-500 line-through' : 'text-gray-100')}>
+                              {task.text}
+                            </p>
+                            <div className="flex items-center gap-2.5 mt-1">
+                              {task.time && (
+                                <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+                                  <Clock size={10} />
+                                  {task.time}
+                                </span>
+                              )}
+                              {task.seriesId && (
+                                <Repeat size={10} className="text-gray-600" />
+                              )}
+                              {mode === 'couple' && task.user && (
+                                <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                                  <Avatar color={task.user.avatarColor} name={task.user.name} size="sm" className="!w-4 !h-4 !text-[8px]" />
+                                  {task.user.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {isMine && (
+                            <button
+                              onClick={() => deleteWeeklyTask(task.id)}
+                              className="text-gray-700 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -270,13 +293,15 @@ function AddTaskModal({
 }) {
   const [text, setText] = useState('');
   const [time, setTime] = useState('');
+  const [repeat, setRepeat] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
 
   async function handleAdd() {
     if (!text.trim()) return;
     setSaving(true);
     try {
-      await createWeeklyTask(dateKey, text.trim(), time);
+      await createWeeklyTask(dateKey, text.trim(), time, repeat ? repeatWeeks : 1);
       onClose();
     } finally {
       setSaving(false);
@@ -335,6 +360,49 @@ function AddTaskModal({
               onChange={(e) => setTime(e.target.value)}
               className="w-full bg-[#22223A] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-violet-500 transition-all"
             />
+          </div>
+
+          <div className="bg-[#22223A] rounded-xl px-4 py-3 space-y-3">
+            <button
+              type="button"
+              onClick={() => setRepeat((v) => !v)}
+              className="w-full flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-gray-200">
+                <Repeat size={14} className={repeat ? 'text-violet-400' : 'text-gray-500'} />
+                Repetir cada semana
+              </span>
+              <span
+                className={cn(
+                  'w-10 h-6 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0',
+                  repeat ? 'bg-violet-600 justify-end' : 'bg-[#33334a] justify-start'
+                )}
+              >
+                <span className="w-5 h-5 rounded-full bg-white" />
+              </span>
+            </button>
+            {repeat && (
+              <div className="flex items-center gap-3 pt-1 border-t border-white/5">
+                <span className="text-gray-400 text-sm flex-1 pt-3">Durante cuántas semanas:</span>
+                <div className="flex items-center gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setRepeatWeeks((w) => Math.max(2, w - 1))}
+                    className="w-7 h-7 rounded-lg bg-[#2a2a44] text-white flex items-center justify-center"
+                  >
+                    -
+                  </button>
+                  <span className="text-white font-bold w-4 text-center">{repeatWeeks}</span>
+                  <button
+                    type="button"
+                    onClick={() => setRepeatWeeks((w) => Math.min(26, w + 1))}
+                    className="w-7 h-7 rounded-lg bg-[#2a2a44] text-white flex items-center justify-center"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-1">

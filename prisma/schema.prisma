@@ -22,12 +22,14 @@ model User {
   reminderTime         String            @default("20:00")
   notificationsEnabled Boolean           @default(false)
   pairCode             String?           @unique
+  recoveryCode         String?           @unique
   coupleId             String?
   couple               Couple?           @relation(fields: [coupleId], references: [id])
   habits               Habit[]
   completions          HabitCompletion[]
   weeklyTasks          WeeklyTask[]
   weeklyStats          WeeklyStat[]
+  notes                CoupleNote[]
   createdAt            DateTime          @default(now())
 }
 
@@ -67,8 +69,19 @@ model WeeklyTask {
   dateKey   String
   time      String?
   text      String
+  done      Boolean  @default(false)
+  seriesId  String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CoupleNote {
+  id        String   @id @default(cuid())
+  coupleId  String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyStat {

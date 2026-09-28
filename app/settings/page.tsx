@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/hooks/useSession';
-import { updateProfile, logout } from '@/lib/firebase/auth';
+import { updateProfile, logout, getRecoveryCode } from '@/lib/firebase/auth';
 import { User } from '@/lib/types/models';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { Modal } from '@/components/ui/Modal';
 import { AVATAR_COLORS } from '@/lib/utils/constants';
-import { Bell, BellOff, Pencil, Mail, Heart, LogOut, Copy, Check } from 'lucide-react';
+import { Bell, BellOff, Pencil, Mail, Heart, LogOut, Copy, Check, KeyRound } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils/cn';
 
@@ -21,6 +21,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [recoveryCopied, setRecoveryCopied] = useState(false);
+  const [loadingRecovery, setLoadingRecovery] = useState(false);
 
   useEffect(() => {
     if (!sessionLoading && !user) router.replace('/onboarding');
@@ -86,6 +89,20 @@ export default function SettingsPage() {
     if (!confirm('¿Cerrar sesión en este dispositivo?')) return;
     await logout();
     router.push('/onboarding');
+  }
+
+  async function handleShowRecoveryCode() {
+    if (recoveryCode) {
+      setRecoveryCode(null);
+      return;
+    }
+    setLoadingRecovery(true);
+    try {
+      const code = await getRecoveryCode();
+      setRecoveryCode(code);
+    } finally {
+      setLoadingRecovery(false);
+    }
   }
 
   return (
@@ -165,11 +182,38 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Logout */}
+        {/* Account */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-1">
             Cuenta
           </p>
+          <button
+            onClick={handleShowRecoveryCode}
+            disabled={loadingRecovery}
+            className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"
+          >
+            <KeyRound size={16} className="text-violet-400" />
+            <div>
+              <p className="text-gray-300 text-sm font-semibold">
+                {loadingRecovery ? 'Cargando...' : recoveryCode ? 'Ocultar código' : 'Ver código de recuperación'}
+              </p>
+              <p className="text-gray-600 text-xs mt-0.5">Úsalo si pierdes este dispositivo</p>
+            </div>
+          </button>
+          {recoveryCode && (
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(recoveryCode).then(() => {
+                  setRecoveryCopied(true);
+                  setTimeout(() => setRecoveryCopied(false), 1500);
+                });
+              }}
+              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
+            >
+              <span className="text-base font-black text-white tracking-widest">{recoveryCode}</span>
+              {recoveryCopied ? <Check size={16} className="text-green-400" /> : <Copy size={14} className="text-gray-500" />}
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full bg-[#1A1A24] rounded-2xl px-5 py-4 text-left border border-white/5 active:scale-[0.98] transition-transform flex items-center gap-3"

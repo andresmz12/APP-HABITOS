@@ -43,8 +43,27 @@ export interface WeeklyTask {
   dateKey: string;
   time?: string | null; // "HH:mm"
   text: string;
+  done: boolean;
+  seriesId?: string | null;
   createdAt: Date | string;
   user?: { id: string; name: string; avatarColor: string };
+}
+
+export interface CoupleNote {
+  id: string;
+  coupleId: string;
+  authorId: string;
+  text: string;
+  createdAt: Date | string;
+  author?: { id: string; name: string; avatarColor: string };
+}
+
+export interface Badge {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
 }
 
 export interface CoupleSide {
@@ -58,8 +77,15 @@ export interface CoupleSide {
   streak: number;
 }
 
+export interface WeekTrendPoint {
+  weekKey: string;
+  myPoints: number;
+  partnerPoints: number | null;
+}
+
 export interface CoupleSummary {
   me: CoupleSide;
   partner: CoupleSide | null;
   pairCode?: string | null;
+  trend: WeekTrendPoint[];
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { Plus, Sparkles } from 'lucide-react';
 import { useSession } from '@/lib/hooks/useSession';
 import { useHabits } from '@/lib/hooks/useHabits';
@@ -11,6 +12,7 @@ import { PartnerHeader } from '@/components/dashboard/PartnerHeader';
 import { HabitList } from '@/components/habits/HabitList';
 import { HabitForm } from '@/components/habits/HabitForm';
 import { SharedCalendarPlanner } from '@/components/dashboard/SharedCalendarPlanner';
+import { AchievementsPanel } from '@/components/dashboard/AchievementsPanel';
 import { Card } from '@/components/ui/Card';
 import { Habit } from '@/lib/types/models';
 import { BottomNav } from '@/components/ui/BottomNav';
@@ -31,10 +33,21 @@ export default function HomePage() {
 
   const { habits, loading: habitsLoading, weeklyLimitReached, streak, weeklyPoints } = useHabits();
   const { completions } = useTodayCompletions();
+  const celebratedRef = useRef(false);
 
   useEffect(() => {
     if (!sessionLoading && !user) router.replace('/onboarding');
   }, [sessionLoading, user, router]);
+
+  useEffect(() => {
+    const allDone = habits.length > 0 && completions.length >= habits.length;
+    if (allDone && !celebratedRef.current) {
+      celebratedRef.current = true;
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#8B85FF', '#FF6B9D', '#4ADE80'] });
+    } else if (!allDone) {
+      celebratedRef.current = false;
+    }
+  }, [completions.length, habits.length]);
 
   if (sessionLoading || !user) {
     return (
@@ -138,8 +151,18 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Personal plan calendar */}
+        {/* Achievements */}
         <div className="px-5 mt-5">
+          <Card className="space-y-3 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">
+              Logros
+            </p>
+            <AchievementsPanel />
+          </Card>
+        </div>
+
+        {/* Personal plan calendar */}
+        <div className="px-5 mt-4">
           <Card className="space-y-4 !bg-[#121218] !rounded-3xl border border-white/[0.04]">
             <div>
               <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">

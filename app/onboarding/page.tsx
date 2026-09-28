@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createProfile, joinWithCode } from '@/lib/firebase/auth';
+import { createProfile, joinWithCode, recoverAccount } from '@/lib/firebase/auth';
 import { AVATAR_COLORS } from '@/lib/utils/constants';
 import { Logo } from '@/components/ui/Logo';
 import { Avatar } from '@/components/ui/Avatar';
-import { Check, Copy, ArrowLeft } from 'lucide-react';
+import { Check, Copy, ArrowLeft, KeyRound } from 'lucide-react';
 
-type Mode = 'choose' | 'create' | 'join' | 'created';
+type Mode = 'choose' | 'create' | 'join' | 'recover' | 'created' | 'joined';
 
 function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
@@ -37,21 +37,26 @@ export default function OnboardingPage() {
   const [name, setName] = useState('');
   const [color, setColor] = useState(AVATAR_COLORS[0]);
   const [code, setCode] = useState('');
+  const [recoveryInput, setRecoveryInput] = useState('');
   const [myPairCode, setMyPairCode] = useState('');
+  const [myRecoveryCode, setMyRecoveryCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copiedPair, setCopiedPair] = useState(false);
+  const [copiedRecovery, setCopiedRecovery] = useState(false);
 
   const canSubmitCreate = name.trim().length > 0 && !loading;
   const canSubmitJoin = name.trim().length > 0 && code.trim().length >= 4 && !loading;
+  const canSubmitRecover = recoveryInput.trim().length > 0 && !loading;
 
   async function handleCreate() {
     if (!canSubmitCreate) return;
     setLoading(true);
     setError('');
     try {
-      const user = await createProfile(name.trim(), color);
+      const { user, recoveryCode } = await createProfile(name.trim(), color);
       setMyPairCode(user.pairCode ?? '');
+      setMyRecoveryCode(recoveryCode);
       setMode('created');
     } catch {
       setError('No se pudo crear tu perfil. Intenta de nuevo.');
@@ -65,8 +70,9 @@ export default function OnboardingPage() {
     setLoading(true);
     setError('');
     try {
-      await joinWithCode(name.trim(), color, code.trim());
-      router.push('/home');
+      const { recoveryCode } = await joinWithCode(name.trim(), color, code.trim());
+      setMyRecoveryCode(recoveryCode);
+      setMode('joined');
     } catch (err) {
       setError((err as Error).message || 'No se pudo vincular. Revisa el código.');
     } finally {
@@ -74,10 +80,24 @@ export default function OnboardingPage() {
     }
   }
 
-  function handleCopy() {
-    navigator.clipboard?.writeText(myPairCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+  async function handleRecover() {
+    if (!canSubmitRecover) return;
+    setLoading(true);
+    setError('');
+    try {
+      await recoverAccount(recoveryInput.trim());
+      router.push('/home');
+    } catch (err) {
+      setError((err as Error).message || 'Código inválido.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copy(text: string, setFlag: (v: boolean) => void) {
+    navigator.clipboard?.writeText(text).then(() => {
+      setFlag(true);
+      setTimeout(() => setFlag(false), 1500);
     });
   }
 
@@ -102,6 +122,54 @@ export default function OnboardingPage() {
             className="w-full py-4 rounded-2xl font-bold text-gray-200 text-base bg-[#1A1A24] border border-white/10 active:scale-95 transition-transform"
           >
             Ya tengo un código de pareja
+          </button>
+          <button
+            onClick={() => { setMode('recover'); setError(''); }}
+            className="w-full flex items-center justify-center gap-2 py-3 text-gray-500 text-sm hover:text-gray-300 transition-colors"
+          >
+            <KeyRound size={13} />
+            Recuperar mi cuenta
+          </button>
+        </div>
+      )}
+
+      {mode === 'recover' && (
+        <div className="w-full max-w-sm space-y-5">
+          <button
+            onClick={() => { setMode('choose'); setError(''); }}
+            className="flex items-center gap-1.5 text-gray-500 text-sm hover:text-gray-300 transition-colors"
+          >
+            <ArrowLeft size={14} /> Volver
+          </button>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">
+              Código de recuperación
+            </label>
+            <input
+              type="text"
+              value={recoveryInput}
+              onChange={(e) => setRecoveryInput(e.target.value.toUpperCase())}
+              placeholder="AB3D-EFGH-2345"
+              className="w-full bg-[#1A1A24] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-base outline-none focus:ring-1 focus:ring-violet-500 transition-all tracking-widest text-center font-bold uppercase"
+            />
+            <p className="text-gray-600 text-xs mt-2">
+              Te lo mostramos al crear tu perfil o en Ajustes → Cuenta.
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-sm text-center px-4 py-2 bg-red-500/10 rounded-xl border border-red-500/20">
+              {error}
+            </p>
+          )}
+
+          <button
+            onClick={handleRecover}
+            disabled={!canSubmitRecover}
+            className="w-full py-4 rounded-2xl font-bold text-white text-lg transition-all active:scale-95 disabled:opacity-30 bg-gradient-to-br from-violet-600 to-pink-500"
+          >
+            {loading ? <span className="inline-block animate-spin">⟳</span> : 'Recuperar cuenta'}
           </button>
         </div>
       )}
@@ -175,22 +243,20 @@ export default function OnboardingPage() {
       )}
 
       {mode === 'created' && (
-        <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="w-full max-w-sm space-y-5 text-center">
           <p className="text-gray-400 text-sm">
             ¡Listo, {name.trim()}! Comparte este código con tu pareja para que se vincule contigo.
           </p>
 
           <button
-            onClick={handleCopy}
+            onClick={() => copy(myPairCode, setCopiedPair)}
             className="w-full flex items-center justify-center gap-3 py-6 rounded-2xl bg-[#1A1A24] border border-violet-500/30"
           >
             <span className="text-4xl font-black text-white tracking-[0.3em]">{myPairCode}</span>
-            {copied ? (
-              <Check size={20} className="text-green-400" />
-            ) : (
-              <Copy size={18} className="text-gray-500" />
-            )}
+            {copiedPair ? <Check size={20} className="text-green-400" /> : <Copy size={18} className="text-gray-500" />}
           </button>
+
+          <RecoveryCodeBox code={myRecoveryCode} copied={copiedRecovery} onCopy={() => copy(myRecoveryCode, setCopiedRecovery)} />
 
           <button
             onClick={() => router.push('/home')}
@@ -200,6 +266,41 @@ export default function OnboardingPage() {
           </button>
         </div>
       )}
+
+      {mode === 'joined' && (
+        <div className="w-full max-w-sm space-y-5 text-center">
+          <p className="text-gray-400 text-sm">¡Vinculado con éxito! Guarda tu código de recuperación por si cambias de celular.</p>
+
+          <RecoveryCodeBox code={myRecoveryCode} copied={copiedRecovery} onCopy={() => copy(myRecoveryCode, setCopiedRecovery)} />
+
+          <button
+            onClick={() => router.push('/home')}
+            className="w-full py-4 rounded-2xl font-bold text-white text-lg bg-gradient-to-br from-violet-600 to-pink-500 active:scale-95 transition-transform"
+          >
+            Ir a la app
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecoveryCodeBox({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
+  return (
+    <div className="text-left space-y-2">
+      <label className="text-xs font-semibold text-gray-400 block uppercase tracking-wider text-center">
+        Tu código de recuperación
+      </label>
+      <button
+        onClick={onCopy}
+        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-[#1A1A24] border border-white/10"
+      >
+        <span className="text-lg font-black text-white tracking-widest">{code}</span>
+        {copied ? <Check size={16} className="text-green-400" /> : <Copy size={14} className="text-gray-500" />}
+      </button>
+      <p className="text-gray-600 text-xs text-center px-2">
+        Guárdalo en un lugar seguro. Sin él no podrás recuperar tu cuenta si pierdes este dispositivo.
+      </p>
     </div>
   );
 }

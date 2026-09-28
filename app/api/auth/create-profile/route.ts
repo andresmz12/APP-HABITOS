@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { SESSION_COOKIE, generateSessionToken, generatePairCode, sanitizeUser } from '@/lib/auth';
+import { SESSION_COOKIE, generateSessionToken, generatePairCode, generateRecoveryCode, sanitizeUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,19 +11,25 @@ export async function POST(req: NextRequest) {
 
     const sessionToken = generateSessionToken();
     let pairCode = generatePairCode();
+    let recoveryCode = generateRecoveryCode();
 
-    // Extremely unlikely, but guard against a pairCode collision
+    // Extremely unlikely, but guard against code collisions
     for (let i = 0; i < 5; i++) {
       const existing = await prisma.user.findUnique({ where: { pairCode } });
       if (!existing) break;
       pairCode = generatePairCode();
     }
+    for (let i = 0; i < 5; i++) {
+      const existing = await prisma.user.findUnique({ where: { recoveryCode } });
+      if (!existing) break;
+      recoveryCode = generateRecoveryCode();
+    }
 
     const user = await prisma.user.create({
-      data: { name: name.trim(), avatarColor: avatarColor || '#6C63FF', sessionToken, pairCode },
+      data: { name: name.trim(), avatarColor: avatarColor || '#6C63FF', sessionToken, pairCode, recoveryCode },
     });
 
-    const res = NextResponse.json({ user: sanitizeUser(user) });
+    const res = NextResponse.json({ user: sanitizeUser(user), recoveryCode });
     res.cookies.set(SESSION_COOKIE, sessionToken, {
       httpOnly: true,
       secure: true,

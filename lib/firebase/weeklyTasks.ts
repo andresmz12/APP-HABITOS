@@ -28,13 +28,26 @@ export function subscribeToMonthTasks(
   return () => { active = false; clearInterval(timer); };
 }
 
-export async function createWeeklyTask(dateKey: string, text: string, time?: string): Promise<string> {
+export async function createWeeklyTask(
+  dateKey: string,
+  text: string,
+  time?: string,
+  repeatWeeks?: number
+): Promise<string> {
   const { task } = await apiFetch('/api/weekly-tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dateKey, text, time: time || null }),
+    body: JSON.stringify({ dateKey, text, time: time || null, repeatWeeks }),
   });
   return task.id;
+}
+
+export async function setWeeklyTaskDone(taskId: string, done: boolean): Promise<void> {
+  await apiFetch(`/api/weekly-tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ done }),
+  });
 }
 
 export async function deleteWeeklyTask(taskId: string): Promise<void> {

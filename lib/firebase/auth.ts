@@ -34,22 +34,39 @@ export function subscribeToMe(callback: (data: MeResponse) => void): () => void 
   return () => { active = false; clearInterval(timer); };
 }
 
-export async function createProfile(name: string, avatarColor: string): Promise<User> {
-  const { user } = await apiFetch('/api/auth/create-profile', {
+export interface AuthResult {
+  user: User;
+  recoveryCode: string;
+}
+
+export async function createProfile(name: string, avatarColor: string): Promise<AuthResult> {
+  return apiFetch('/api/auth/create-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, avatarColor }),
   });
-  return user;
 }
 
-export async function joinWithCode(name: string, avatarColor: string, pairCode: string): Promise<User> {
-  const { user } = await apiFetch('/api/auth/join', {
+export async function joinWithCode(name: string, avatarColor: string, pairCode: string): Promise<AuthResult> {
+  return apiFetch('/api/auth/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, avatarColor, pairCode }),
   });
+}
+
+export async function recoverAccount(recoveryCode: string): Promise<User> {
+  const { user } = await apiFetch('/api/auth/recover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recoveryCode }),
+  });
   return user;
+}
+
+export async function getRecoveryCode(): Promise<string> {
+  const { recoveryCode } = await apiFetch('/api/auth/recovery-code');
+  return recoveryCode;
 }
 
 export async function updateProfile(
