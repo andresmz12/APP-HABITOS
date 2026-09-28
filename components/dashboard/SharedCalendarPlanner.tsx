@@ -255,9 +255,9 @@ export function SharedCalendarPlanner({ viewerId, mode = 'personal', participant
                           {isMine && (
                             <button
                               onClick={() => deleteWeeklyTask(task.id)}
-                              className="text-gray-700 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                              className="text-gray-500 hover:text-red-400 active:text-red-400 transition-colors flex-shrink-0"
                             >
-                              <X size={14} />
+                              <X size={16} />
                             </button>
                           )}
                         </div>
